@@ -14,23 +14,32 @@
 
 ```
 codegreen_Demo/
-├── backend/              # FastAPI 백엔드 서버
-│   ├── main.py          # FastAPI 메인 애플리케이션
-│   ├── service/         # 비즈니스 로직
+├── ecojourney/                 # Reflex Full-stack 앱
+│   ├── __init__.py
+│   ├── ecojourney.py          # 메인 앱 파일 (라우팅 정의)
+│   ├── state.py               # State 관리 (AppState 클래스)
+│   ├── pages/                 # 페이지 컴포넌트
+│   │   ├── __init__.py
+│   │   ├── home.py           # 홈 페이지
+│   │   ├── intro.py          # 인트로 페이지
+│   │   ├── transportation.py # 교통 입력 페이지
+│   │   ├── food.py           # 식품 입력 페이지
+│   │   ├── clothing.py       # 의류 입력 페이지
+│   │   ├── electricity.py    # 전기 입력 페이지
+│   │   ├── water.py          # 물 입력 페이지
+│   │   ├── waste.py          # 쓰레기 입력 페이지
+│   │   └── report.py         # 리포트 페이지
+│   ├── service/              # 서비스 로직
+│   │   ├── __init__.py
 │   │   ├── carbon_calculator.py  # 탄소 계산 로직
-│   │   ├── ai_coach.py          # AI 코칭 로직
-│   │   ├── average_data.py      # 평균 데이터
-│   │   └── models.py            # 데이터 모델
+│   │   ├── ai_coach.py           # AI 코칭 로직
+│   │   ├── average_data.py       # 평균 데이터
+│   │   └── models.py             # 데이터 모델
+│   ├── REFLEX_SETUP.md        # Reflex 설정 가이드
 │   └── requirements.txt
-├── frontend/            # Reflex 프론트엔드
-│   ├── app.py          # Streamlit 앱 (레거시)
-│   ├── carbon_footprint/  # Reflex 앱
-│   │   ├── carbon_footprint.py
-│   │   └── components/  # UI 컴포넌트
-│   ├── rxconfig.py     # Reflex 설정
-│   └── requirements.txt
-├── QUICKSTART.md        # 빠른 시작 가이드
-└── README.md           # 프로젝트 문서
+├── rxconfig.py                # Reflex 설정 파일 (프로젝트 루트)
+├── QUICKSTART.md              # 빠른 시작 가이드
+└── README.md                  # 프로젝트 문서
 ```
 
 ## 🚀 빠른 시작
@@ -46,8 +55,7 @@ python -m venv .venv
 # source .venv/bin/activate  # macOS/Linux
 
 # 의존성 설치
-pip install -r backend/requirements.txt
-pip install -r frontend/requirements.txt
+pip install -r ecojourney/requirements.txt
 ```
 
 ### 2. 환경 변수 설정
@@ -62,19 +70,19 @@ GEMINI_API_KEY=your_gemini_api_key_here
 
 ### 3. 서버 실행
 
-**터미널 1: 백엔드 서버 (포트 8001)**
-```bash
-cd backend
-uvicorn main:app --reload --port 8001
-```
+**Reflex 앱 실행 (프론트엔드 + 백엔드 통합)**
 
-**터미널 2: 프론트엔드 (포트 3000)**
+Reflex는 프론트엔드와 백엔드를 하나로 통합한 Full-stack 프레임워크입니다.
+별도의 백엔드 서버를 실행할 필요가 없습니다.
+
 ```bash
-cd frontend
+cd ecojourney
 reflex run
 ```
 
 브라우저에서 `http://localhost:3000`으로 접속하세요.
+
+> **참고**: Reflex는 Full-stack 프레임워크로, 프론트엔드와 백엔드가 하나로 통합되어 있습니다. 별도의 백엔드 서버를 실행할 필요가 없습니다. 모든 로직은 `service/` 폴더의 서비스 함수로 처리됩니다.
 
 ## 📋 지원 카테고리
 
@@ -246,19 +254,24 @@ AI 코칭은 Google Gemini API를 사용하여 사용자의 탄소 배출 패턴
 
 ## 🛠️ 기술 스택
 
-### 백엔드
-- **FastAPI**: 고성능 Python 웹 프레임워크
+### Full-stack 프레임워크
+- **Reflex 0.8.20**: Python 기반 React 프레임워크 (프론트엔드 + 백엔드 통합)
+  - 프론트엔드: React 기반 UI
+  - 백엔드: Python 서비스 로직 (FastAPI 스타일)
+
+### 외부 API
 - **Google Gemini API**: AI 코칭 기능
 
-### 프론트엔드
-- **Reflex**: Python 기반 React 프레임워크
-- **Streamlit**: 레거시 UI (선택적 사용)
+### 주요 특징
+- **Full-stack 통합**: 별도의 백엔드 서버 없이 하나의 앱으로 실행
+- **State 관리**: `rx.State` 클래스를 통한 전역 상태 관리
+- **이벤트 핸들러**: `on_click`, `on_change` 등을 통한 인터랙티브 UI
+- **페이지 라우팅**: `rx.redirect()`를 통한 페이지 네비게이션
 
-## 📚 API 문서
+## 📚 추가 문서
 
-백엔드 서버 실행 후 다음 주소에서 API 문서를 확인할 수 있습니다:
-- Swagger UI: http://localhost:8001/docs
-- ReDoc: http://localhost:8001/redoc
+- **빠른 시작**: [QUICKSTART.md](./QUICKSTART.md)
+- **Reflex 설정 가이드**: [ecojourney/REFLEX_SETUP.md](./ecojourney/REFLEX_SETUP.md)
 
 ## 🤝 기여하기
 

@@ -19,14 +19,8 @@ source .venv/bin/activate
 ### 의존성 설치
 
 ```bash
-# 백엔드 의존성 설치
-pip install -r backend/requirements.txt
-
-# 프론트엔드 의존성 설치
-pip install -r frontend/requirements.txt
-
-# 또는 한 번에 설치
-pip install -r backend/requirements.txt -r frontend/requirements.txt
+# 의존성 설치
+pip install -r ecojourney/requirements.txt
 ```
 
 ## 2. 환경 변수 설정
@@ -68,56 +62,106 @@ GEMINI_API_KEY=your_gemini_api_key_here
 
 ## 3. 서버 실행
 
-### 터미널 1: FastAPI 백엔드 서버 (포트 8001)
+### Reflex 앱 실행 (프론트엔드 + 백엔드 통합)
+
+Reflex는 프론트엔드와 백엔드를 하나로 통합한 Full-stack 프레임워크입니다.
+별도의 백엔드 서버를 실행할 필요가 없습니다.
 
 ```bash
-cd backend
-uvicorn main:app --reload --port 8001
-```
-
-서버가 정상적으로 실행되면 다음 주소에서 API 문서를 확인할 수 있습니다:
-- API 문서: http://localhost:8001/docs
-- 대체 문서: http://localhost:8001/redoc
-
-> **참고**: 포트 8001을 사용하는 이유는 Reflex와 포트 충돌을 방지하기 위함입니다.
-
-### 터미널 2: Reflex 프론트엔드 (포트 3000)
-
-```bash
-cd frontend
+cd ecojourney
 reflex run
 ```
 
 브라우저에서 자동으로 열리거나, 다음 주소로 접속하세요:
 - Reflex 앱: http://localhost:3000
-- Reflex는 자체 백엔드를 포트 3000에서 실행하며, WebSocket도 같은 포트를 사용합니다.
+- API 문서: http://localhost:3000/api/docs (FastAPI 라우터가 통합됨)
+
+> **참고**: Reflex는 자체 백엔드를 포트 3000에서 실행하며, WebSocket도 같은 포트를 사용합니다.
+> 모든 API는 `/api` 경로로 접근 가능합니다.
 
 ## 4. 사용 방법
 
-1. **활동 입력**: 왼쪽 사이드바에서 카테고리를 선택하고 활동을 입력하세요
-   - 예: 교통 > 자동차 > 30분
-   - 예: 식품 > 쇠고기 > 1인분
+1. **홈 화면**: 앱 시작 시 홈 화면이 표시됩니다
+   - "탄소 발자국 측정 시작하기" 버튼을 클릭하여 인트로 페이지로 이동
 
-2. **대시보드 확인**: 메인 화면에서 실시간으로 탄소 배출량을 확인하세요
+2. **인트로 페이지**: 서비스 소개를 확인한 후 카테고리 입력을 시작하세요
 
-3. **지구 아바타**: 아바타 탭에서 지구의 건강 상태를 확인하세요
+3. **카테고리 입력**: 각 카테고리별로 활동을 입력하세요
+   - 교통: 자동차, 버스, 지하철 등
+   - 식품: 소고기, 돼지고기, 채소 등
+   - 의류: 티셔츠, 청바지, 신발 등
+   - 전기: 냉방기, 난방기 사용 시간
+   - 물: 샤워, 설거지, 세탁 횟수
+   - 쓰레기: 일반, 플라스틱, 종이 등
 
-4. **AI 코칭**: AI 코칭 탭에서 맞춤형 탄소 저감 제안을 받으세요
-
-5. **배지 획득**: 다양한 활동을 통해 배지를 획득하세요
+4. **결과 리포트**: 모든 입력을 완료하면 리포트 페이지에서 결과를 확인할 수 있습니다
+   - 총 탄소 배출량
+   - 카테고리별 배출량
+   - AI 기반 맞춤형 코칭 제안
 
 ## 5. 문제 해결
 
-### API 연결 오류
-- FastAPI 서버가 실행 중인지 확인하세요 (포트 8001)
-- `http://localhost:8001`에 접속 가능한지 확인하세요
-- Reflex 서버는 포트 3000에서 실행되며, FastAPI 백엔드(포트 8001)의 API를 호출합니다
+### 페이지 이동이 안 될 때
+
+Reflex에서 페이지 이동이 안 되는 가장 흔한 원인 3가지:
+
+#### ❌ 1) 버튼에 `on_click=rx.redirect()` 처리를 안 넣음
+
+Reflex는 React처럼 `<a href>`로 이동하지 않습니다. 반드시 이벤트 핸들러를 사용해야 합니다.
+
+**해결법**:
+```python
+# ✅ 정답
+rx.button(
+    "시작하기",
+    on_click=rx.redirect("/intro")
+)
+```
+
+#### ❌ 2) `ecojourney.py`에서 route 등록이 안 되어 있음
+
+페이지를 등록하지 않으면 버튼을 잘 눌러도 페이지 자체가 없어서 이동이 안 됩니다.
+
+**해결법**:
+```python
+app = rx.App(_state=AppState)
+app.add_page(home_page, route="/")
+app.add_page(intro_page, route="/intro")  # 이게 없으면 이동 안 됨
+```
+
+#### ❌ 3) 페이지 함수에서 `return`이 컴포넌트가 아닌 경우
+
+페이지 함수는 반드시 단일 컴포넌트를 반환해야 합니다.
+
+**해결법**:
+```python
+# ✅ 올바른 예시
+def intro():
+    return rx.text("인트로 페이지")  # 단일 컴포넌트 반환
+
+# ❌ 잘못된 예시
+def intro():
+    return rx.fragment(...)  # rx.fragment는 문제 발생 가능
+```
+
+자세한 내용은 [REFLEX_SETUP.md](./ecojourney/REFLEX_SETUP.md)를 참고하세요.
 
 ### Gemini API 오류
 - `.env` 파일에 API 키가 올바르게 설정되었는지 확인하세요
 - API 키가 유효한지 확인하세요
+- API 키가 없어도 기본 기능은 사용할 수 있지만, AI 코칭 기능은 제한됩니다
 
 ### Import 오류
 - 가상환경이 활성화되어 있는지 확인하세요
-- `pip install -r requirements.txt`를 다시 실행하세요
+- `pip install -r ecojourney/requirements.txt`를 다시 실행하세요
+- 프로젝트 루트에서 실행하고 있는지 확인하세요
+
+### 이벤트 핸들러가 호출되지 않을 때
+- State 변수를 페이지에서 참조했는지 확인하세요
+- `rx.App(_state=AppState)`로 앱을 초기화했는지 확인하세요
+- 페이지 함수가 단일 컴포넌트를 반환하는지 확인하세요
+
+### Reflex 앱 실행 오류
+- `reflex init`을 실행했는지 확인하세요
+- Reflex 버전이 0.8.20 이상인지 확인하세요: `pip install reflex --upgrade`
 

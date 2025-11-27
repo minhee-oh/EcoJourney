@@ -6,7 +6,7 @@ import os
 from typing import List, Dict
 import google.generativeai as genai
 from dotenv import load_dotenv
-from service.models import AICoachRequest, AICoachResponse, CarbonResult
+from .models import AICoachRequest, AICoachResponse, CarbonResult
 
 load_dotenv()
 
