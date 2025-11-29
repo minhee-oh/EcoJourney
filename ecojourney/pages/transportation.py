@@ -1,21 +1,16 @@
-import reflex as rx
-from ecojourney.state import AppState
+# transportation.py
 
-def transportation_page():
-    return rx.center(
-        rx.vstack(
-            rx.heading("🚗 교통 편", size="8", color="blue.600"),
-            rx.text("오늘 이용한 이동 수단을 입력해주세요.", size="5"),
-            
-            # 간단한 뒤로가기 버튼
-            rx.button(
-                "⬅️ 이전으로", 
-                on_click=rx.redirect("/intro")
-            ),
-            spacing="5",
-            align="center",
-        ),
-        width="100%",
-        height="100vh",
-        padding_top="100px"
+import reflex as rx
+
+def transportation_page() -> rx.Component:
+    return rx.vstack(
+        rx.heading("교통 입력 페이지"),
+        rx.text("교통 입력 데이터를 처리한 후 다음으로 이동합니다."),
+        rx.button(
+            "식품 페이지로 ➡️",
+            # 다음 페이지로 직접 리다이렉트
+            on_click=rx.redirect("/input/food"),
+            color_scheme="green",
+            size="3",
+        )
     )

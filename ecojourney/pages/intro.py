@@ -30,17 +30,17 @@ def intro_page():
             rx.divider(margin_top="20px"),
             
             # TODO: 홈 → 인트로 테스트 완료 후 활성화
-            # rx.button(
-            #     "카테고리 입력 시작하기 ➡️",
-            #     # 버튼 클릭 시 AppState의 next_category 함수를 호출하여 첫 번째 입력 페이지로 이동
-            #     on_click=AppState.next_category,
-            #     size="3",
-            #     color_scheme="blue",
-            #     padding="15px 30px",
-            #     border_radius="lg",
-            #     margin_top="30px",
-            #     _hover={"opacity": 0.8}
-            # ),
+            rx.button(
+                "카테고리 입력 시작하기 ➡️",
+                # 버튼 클릭 시 AppState의 next_category 함수를 호출하여 첫 번째 입력 페이지로 이동
+                on_click=rx.redirect("/input/transportation"),
+                size="3",
+                color_scheme="blue",
+                padding="15px 30px",
+                border_radius="lg",
+                margin_top="30px",
+                _hover={"opacity": 0.8}
+            ),
             
             spacing="5",
             align="center",

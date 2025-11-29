@@ -1,8 +1,8 @@
 # state.py
 
 import reflex as rx
-import logging
 from typing import Dict, List, Any, Optional
+import logging
 
 # 로깅 설정
 logging.basicConfig(
@@ -10,6 +10,35 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+# CATEGORY_CONFIG: 모든 카테고리 데이터를 담는 핵심 딕셔너리
+# NOTE: 이 딕셔너리의 순서(keys)는 페이지 이동 순서를 결정합니다.
+CATEGORY_CONFIG = {
+    "교통": {
+        "path": "transportation", # URL 경로 ("/input/transportation")에 사용
+        "description": "오늘의 교통 수단 이용량(거리 또는 시간)을 입력해주세요.",
+        "activities": ["자동차", "지하철", "버스", "걷기", "자전거"],
+        "units": ["km", "분"],
+        "inputs_key": "transport_inputs"
+    },
+    "식품": {
+        "path": "food",
+        "description": "오늘 섭취한 주요 식품 카테고리를 입력해주세요.",
+        "activities": ["육류", "채소/과일", "가공식품", "유제품"],
+        "units": ["g", "회"],
+        "inputs_key": "food_inputs"
+    },
+    "의류": {
+        "path": "clothing",
+        "description": "오늘 쇼핑한 의류 및 잡화의 종류와 개수를 입력해주세요.",
+        "activities": ["상의", "하의", "신발", "가방/잡화"],
+        "units": ["개"],
+        "inputs_key": "clothing_inputs"
+    }
+}
+
+CATEGORY_ORDER = list(CATEGORY_CONFIG.keys())
 
 # 💡 서비스 함수를 직접 호출 (FastAPI 라우터 불필요)
 # State에서 직접 서비스 로직을 호출합니다
@@ -22,13 +51,11 @@ class AppState(rx.State):
     """
     EcoJourney 앱의 전역 상태를 관리하는 클래스.
     """
-    
-    # 1. 화면 흐름 제어 변수
-    current_category: str = "transportation" 
-    # NOTE: 카테고리 이름은 FastAPI 백엔드의 데이터와 일치해야 합니다.
-    CATEGORY_ORDER: List[str] = [
-        "교통", "식품", "의류", "쓰레기", "전기", "물" 
-    ]
+    CATEGORY_CONFIG: Dict[str, Any] = CATEGORY_CONFIG
+    CATEGORY_ORDER: List[str] = CATEGORY_ORDER
+
+    # 현재 카테고리 상태 (초기값은 CATEGORY_ORDER의 첫 번째 항목)
+    current_category: str = CATEGORY_ORDER[0] if CATEGORY_ORDER else ""
     
     # 2. 카테고리별 사용자 입력값 저장소
     all_activities: List[CarbonActivity] = []
@@ -44,8 +71,6 @@ class AppState(rx.State):
     # UI 및 오류 메시지
     is_loading: bool = False
     error_message: str = ""
-    should_redirect: bool = False
-    redirect_path: str = ""
     
     # 3. 결과 리포트 데이터
     total_carbon_emission: float = 0.0
@@ -78,100 +103,92 @@ class AppState(rx.State):
             self.food_inputs = new_list
         elif self.current_category == "의류":
             self.clothing_inputs = new_list
-        # ... (나머지 카테고리도 필요하다면 구현)
+        elif self.current_category == "전기":
+            self.electricity_inputs = new_list
+        elif self.current_category == "물":
+            self.water_inputs = new_list
+        elif self.current_category == "쓰레기":
+            self.waste_inputs = new_list
         
-    def _get_category_path(self, category: str) -> str:
-        """카테고리 이름을 URL 경로로 변환합니다."""
+    def set_current_category(self, category_name: str):
+        """ URL 경로에 따라 현재 카테고리를 설정"""
+        if category_name in self.CATEGORY_ORDER:
+            self.current_category = category_name
+            logger.info(f"State: current_category 설정됨 -> {category_name}")
+        else:
+            logger.error(f"State:존재하지 않는 카테고리 시도: {category_name}")
+    
+    def _get_category_path(self, category_name: str) -> str:
+        """카테고리 이름을 URL 경로로 조회합니다."""
         # 예: '교통' -> 'transportation' (URL에서 영문 사용 가정)
-        mapping = {
-            "교통": "transportation", "식품": "food", "의류": "clothing",
-            "쓰레기": "waste", "전기": "electricity", "물": "water"
-        }
-        return mapping.get(category, category)
+        return self.CATEGORY_CONFIG.get(category_name, {}).get("path", "")
 
     # --- 5. 핵심 라우팅 및 액션 함수 ---
-
-    def go_to_intro(self):
-        """홈 화면에서 소개 화면으로 이동"""
-        # 즉시 로그 출력 (함수 호출 확인용)
-        print("=" * 60, flush=True)
-        print("🖱️ [버튼 클릭 이벤트] go_to_intro 함수 호출됨!", flush=True)
-        print("=" * 60, flush=True)
-        
-        import datetime
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-        logger.info("=" * 60)
-        logger.info(f"🖱️ [버튼 클릭 이벤트] go_to_intro 함수 호출됨!")
-        logger.info(f"⏰ [타임스탬프] {timestamp}")
-        logger.info(f"📍 [현재 경로] / (홈 페이지)")
-        logger.info(f"🎯 [목적지] /intro (인트로 페이지)")
-        logger.info("=" * 60)
-        
-        print(f"⏰ [타임스탬프] {timestamp}", flush=True)
-        print(f"📍 [현재 경로] / (홈 페이지)", flush=True)
-        print(f"🎯 [목적지] /intro (인트로 페이지)", flush=True)
-        print("🔄 리다이렉트 명령 실행 중...", flush=True)
-        
-        # 리다이렉트 실행
-        logger.info("🔄 리다이렉트 명령 실행 중...")
-        redirect_result = rx.redirect("/intro")
-        
-        logger.info("✅ 리다이렉트 명령 완료")
-        print("✅ 리다이렉트 명령 완료", flush=True)
-        
-        return redirect_result
     
-    def next_category(self):
+    # def back_category(self):
+        # """이전 카테고리 입력 페이지로 돌아갑니다."""
+        # self.error_message = "" # 오류 메시지 초기화
+        
+        # try:
+            # current_index = self.CATEGORY_ORDER.index(self.current_category)
+            
+            # if current_index > 0:
+                # 이전 카테고리로 이동
+                # prev_category_name = self.CATEGORY_ORDER[current_index - 1]
+                # self.current_category = prev_category_name
+                # prev_path = self._get_category_path(prev_category_name)
+                # return rx.redirect(f"/input/{prev_path}")
+            # else:
+                # 첫 카테고리에서는 소개 페이지로 이동
+                # self.current_category = ""
+                # return rx.redirect("/intro")
+                
+        # except ValueError:
+            # 오류 방지
+            # return rx.redirect("/intro")
+        
+    async def save_and_proceed(self, current_inputs: List[Dict[str, Any]]):
         """
-        다음 카테고리 페이지 또는 리포트 페이지로 이동합니다.
+        현재 페이지의 입력을 처리하고, API를 호출하여 계산 후 다음 페이지로 이동합니다.
         """
         logger.info("=" * 50)
-        logger.info("➡️ next_category 함수 호출됨!")
-        logger.info(f"현재 카테고리: {self.current_category}")
+        logger.info("💾 save_and_proceed 함수 호출됨!")
         print("=" * 50, flush=True)
-        print(f"➡️ next_category 함수 호출됨! 현재 카테고리: {self.current_category}", flush=True)
-        print("=" * 50, flush=True)
-        self.error_message = "" # 오류 메시지 초기화
-        
-        try:
-            current_index = self.CATEGORY_ORDER.index(self.current_category)
-            
-            if current_index < len(self.CATEGORY_ORDER) - 1:
-                # 다음 카테고리로 이동
-                next_category_name = self.CATEGORY_ORDER[current_index + 1]
-                self.current_category = next_category_name
-                next_path = self._get_category_path(next_category_name)
-                return rx.redirect(f"/input/{next_path}")
-            else:
-                # 마지막 카테고리 후 리포트 페이지로 이동
-                self.current_category = "report"
-                return self.calculate_report()
-                
-        except ValueError:
-            # 현재 카테고리가 목록에 없는 경우 (오류 방지)
-            return rx.redirect("/intro")
+        self.is_loading = True
+        self.error_message = ""
+
+        # 1. 이전 활동 저장소에서 현재 카테고리 활동을 제거
+        self.all_activities = [
+        act for act in self.all_activities if act.get("category") != self.current_category
+        ]
+
+        # 2. 유효한 입력만 필터링하고 탄소 배출량 계산 (로직 유지)
+        valid_activities = []
+        for inp in current_inputs:
+            if inp.get("value", 0.0) > 0:
+                inp["category"] = self.current_category
+                carbon_kg = await self._calculate_emission_for_activity(inp)
+                if carbon_kg is not None:
+                    inp["carbon_emission_kg"] = carbon_kg
+                    valid_activities.append(inp)
+                else:
+                    self.is_loading = False
+                    return 
+
+        # 3. 전체 활동 목록에 추가
+        self.all_activities.extend(valid_activities)
+
+        # 4. 다음 페이지로 이동 (UI에서 직접 처리하므로, 여기서는 이동 경로만 반환)
+        self.is_loading = False
+ 
+        # 💡 다음 페이지 경로를 반환합니다. (호출하는 UI에서 rx.redirect에 사용)
+        config = self.CATEGORY_CONFIG.get(self.current_category, {})
+        next_path = config.get("next_path", "/report") # 마지막 카테고리가 아니라면 다음 경로, 아니면 /report
+        return rx.redirect(next_path) # 👈 직접 리다이렉트 실행
     
-    def back_category(self):
-        """이전 카테고리 입력 페이지로 돌아갑니다."""
-        self.error_message = "" # 오류 메시지 초기화
-        
-        try:
-            current_index = self.CATEGORY_ORDER.index(self.current_category)
-            
-            if current_index > 0:
-                # 이전 카테고리로 이동
-                prev_category_name = self.CATEGORY_ORDER[current_index - 1]
-                self.current_category = prev_category_name
-                prev_path = self._get_category_path(prev_category_name)
-                return rx.redirect(f"/input/{prev_path}")
-            else:
-                # 첫 카테고리에서는 소개 페이지로 이동
-                self.current_category = ""
-                return rx.redirect("/intro")
-                
-        except ValueError:
-            # 오류 방지
-            return rx.redirect("/intro")
+    # 임시 더미 함수 (추후 슬롯 추가 함수로 구현 예정)
+    def add_input_slot(self, activity_type: str):
+        pass
             
     # --- 6. API 호출 및 데이터 저장 로직 ---
     
@@ -196,54 +213,6 @@ class AppState(rx.State):
             self.error_message = f"계산 오류: {e}"
             return None
 
-    async def save_and_proceed(self, current_inputs: List[Dict[str, Any]]):
-        """
-        현재 페이지의 입력을 처리하고, API를 호출하여 계산 후 다음 페이지로 이동합니다.
-        """
-        logger.info("=" * 50)
-        logger.info("💾 save_and_proceed 함수 호출됨!")
-        logger.info(f"현재 카테고리: {self.current_category}, 입력 개수: {len(current_inputs)}")
-        print("=" * 50, flush=True)
-        print(f"💾 save_and_proceed 함수 호출됨! 카테고리: {self.current_category}, 입력: {len(current_inputs)}개", flush=True)
-        print("=" * 50, flush=True)
-        self.is_loading = True
-        self.error_message = ""
-        
-        # 1. 이전 활동 저장소에서 현재 카테고리 활동을 제거
-        self.all_activities = [
-            act for act in self.all_activities if act.get("category") != self.current_category
-        ]
-        
-        # 2. 유효한 입력만 필터링하고 탄소 배출량 계산
-        valid_activities = []
-        
-        for inp in current_inputs:
-            # 값(value)이 0보다 큰 유효한 입력만 처리
-            if inp.get("value", 0.0) > 0:
-                inp["category"] = self.current_category
-                
-                # 🚨 비동기 API 호출 및 계산
-                carbon_kg = await self._calculate_emission_for_activity(inp)
-                
-                if carbon_kg is not None:
-                    inp["carbon_emission_kg"] = carbon_kg
-                    valid_activities.append(inp)
-                else:
-                    # 계산 실패 시 로딩 해제 후 함수 종료 (에러 메시지는 _calculate_emission_for_activity에서 설정됨)
-                    self.is_loading = False
-                    return 
-                    
-        # 3. 전체 활동 목록에 추가
-        self.all_activities.extend(valid_activities)
-        
-        # 4. 다음 페이지로 이동
-        self.is_loading = False
-        return self.next_category()
-        
-    def skip_and_proceed(self):
-        """입력 없이 다음 페이지로 이동합니다."""
-        # 입력값 저장 없이 다음 페이지로 이동
-        return self.next_category()
         
     # --- 7. 최종 리포트 계산 함수 ---
 
