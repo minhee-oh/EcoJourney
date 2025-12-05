@@ -258,8 +258,17 @@ def calculate_food_emission(food_type: str, weight_kg: float) -> float:
     
     if not CLIMATIQ_API_KEY:
         logger.warning("[식품 API] CLIMATIQ_API_KEY가 설정되지 않았습니다. Fallback 사용")
-        fallback_result = weight_kg * 27.0  # 실패 시 대략적 평균값 (소고기 기준)
-        logger.info(f"[식품 API] Fallback 계산 결과: {fallback_result}kgCO2e")
+        # 음식 종류별 기본 배출 계수 (kgCO2e/kg)
+        defaults = {
+            "beef": 27.0, 
+            "pork": 7.0, 
+            "chicken": 6.9, 
+            "coffee": 17.0, 
+            "rice": 4.0,
+            "rice_bowl": 4.0,
+        }
+        fallback_result = weight_kg * defaults.get(food_type, 4.0)  # 기본값: 쌀 기준 (채소/유제품 등)
+        logger.info(f"[식품 API] Fallback 계산 결과: {fallback_result}kgCO2e (food_type: {food_type})")
         return fallback_result
     
     # 음식 종류별 Climatiq ID 매핑 (check_ids.py 검색 결과 기반)
@@ -292,9 +301,16 @@ def calculate_food_emission(food_type: str, weight_kg: float) -> float:
     
     if result is None:
         # Fallback: 로컬 배출 계수 사용
-        defaults = {"beef": 27.0, "pork": 7.0, "chicken": 6.9, "coffee": 17.0, "rice": 4.0}
-        fallback_result = weight_kg * defaults.get(food_type, 27.0)
-        logger.info(f"[식품 API] Fallback 계산 결과: {fallback_result}kgCO2e")
+        defaults = {
+            "beef": 27.0, 
+            "pork": 7.0, 
+            "chicken": 6.9, 
+            "coffee": 17.0, 
+            "rice": 4.0,
+            "rice_bowl": 4.0,
+        }
+        fallback_result = weight_kg * defaults.get(food_type, 4.0)  # 기본값: 쌀 기준 (채소/유제품 등)
+        logger.info(f"[식품 API] Fallback 계산 결과: {fallback_result}kgCO2e (food_type: {food_type})")
         return fallback_result
     
     return result
@@ -306,8 +322,8 @@ FOOD_TYPE_MAP = {
     "돼지고기": "pork",
     "닭고기": "chicken",
     "고기류": "beef",  # 기본값
-    "채소류": "rice",  # 채소는 쌀로 대체 (예시)
-    "양파": "rice",  # 채소는 기본값 사용
+    "채소류": "rice",  # 채소는 쌀로 대체 (낮은 배출 계수)
+    "양파": "rice",  # 채소는 쌀 배출 계수 사용
     "파": "rice",
     "마늘": "rice",
     # 쌀밥과 커피
@@ -315,6 +331,9 @@ FOOD_TYPE_MAP = {
     "커피": "coffee",
     "아메리카노": "coffee",  # 커피 하위 카테고리
     "카페라떼": "coffee",  # 커피 하위 카테고리
+    # 유제품 (쌀 배출 계수 사용 - 낮은 배출량)
+    "우유": "rice",
+    "치즈": "rice",
 }
 
 
@@ -330,7 +349,7 @@ def calculate_food_by_name(food_name: str, weight_kg: float) -> float:
         탄소 배출량 (kgCO2e)
     """
     logger.info(f"[식품] 한국어 이름 변환 - 입력: {food_name}, 무게: {weight_kg}kg")
-    food_type = FOOD_TYPE_MAP.get(food_name, "beef")  # 기본값: 소고기
+    food_type = FOOD_TYPE_MAP.get(food_name, "rice")  # 기본값: 쌀 (채소/유제품 등 낮은 배출량)
     logger.info(f"[식품] 매핑된 food_type: {food_type}")
     result = calculate_food_emission(food_type, weight_kg)
     logger.info(f"[식품] 최종 결과: {result}kgCO2e")

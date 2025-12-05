@@ -90,10 +90,16 @@ WASTE_WEIGHT = {
 FOOD_SERVING = {
     "소고기": 200.0,   # g
     "돼지고기": 150.0, # g
+    "닭고기": 150.0,   # g
     "쌀밥": 200.0,     # 1공기 200g 기준
     "커피": 15.0,      # 1잔 원두 15g 기준
     "아메리카노": 15.0,  # 1잔 원두 15g 기준
     "카페라떼": 15.0,   # 1잔 원두 15g 기준
+    "우유": 200.0,     # 1잔 200ml ≈ 200g
+    "치즈": 30.0,      # 1회 30g 기준
+    "양파": 100.0,     # 1회 100g 기준
+    "파": 50.0,        # 1회 50g 기준
+    "마늘": 10.0,      # 1회 10g 기준
 }
 
 
@@ -136,6 +142,14 @@ def convert_to_standard_unit(
         if unit == "g":
             # g을 kg으로 변환
             return value / 1000.0, "kg"
+        elif unit == "ml":
+            # ml을 g으로 변환 (액체는 대략 1ml ≈ 1g)
+            # 그 후 kg으로 변환
+            return value / 1000.0, "kg"
+        elif unit == "회":
+            # 1회 기준량 적용
+            serving_g = FOOD_SERVING.get(activity_type, 200.0)
+            return (serving_g * value) / 1000.0, "kg"
         elif unit == "1회 식사":
             # 1회 식사 기준량 적용
             serving_g = FOOD_SERVING.get(activity_type, 200.0)

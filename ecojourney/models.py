@@ -18,7 +18,6 @@ class User(rx.Model, table=True):
     password: str
     college: str
     current_points: int = 0
-    avatar_status: str = "NORMAL"  # 옵션: 'GOOD', 'NORMAL', 'BAD', 'SICK'
     created_at: datetime = datetime.now()
 
 # -----------------------------------------------------------------------------
@@ -43,6 +42,9 @@ class CarbonLog(rx.Model, table=True):
     # 계산 결과
     total_emission: float = 0.0  # 단위: kgCO2eq
     
+    # 포인트 지급 내역
+    points_earned: int = 0  # 해당 날짜에 획득한 포인트
+    
     # AI 분석 결과 (Gemini)
     ai_feedback: Optional[str] = None
     created_at: datetime = datetime.now()
@@ -50,8 +52,27 @@ class CarbonLog(rx.Model, table=True):
     def get_activities(self) -> List[Dict[str, Any]]:
         """JSON 문자열을 파싱하여 활동 리스트 반환"""
         try:
-            return json.loads(self.activities_json) if self.activities_json else []
-        except:
+            if not self.activities_json or self.activities_json.strip() == "":
+                return []
+            
+            # JSON 파싱 시도
+            parsed = json.loads(self.activities_json)
+            
+            # 파싱 결과가 리스트인지 확인
+            if isinstance(parsed, list):
+                # 리스트의 각 항목이 딕셔너리인지 확인
+                return [item for item in parsed if isinstance(item, dict)]
+            elif isinstance(parsed, dict):
+                # 딕셔너리 하나면 리스트로 감싸서 반환
+                return [parsed]
+            else:
+                # 다른 타입이면 빈 리스트 반환
+                return []
+        except json.JSONDecodeError as e:
+            # JSON 파싱 실패 시 빈 리스트 반환
+            return []
+        except Exception as e:
+            # 기타 오류 시 빈 리스트 반환
             return []
     
     def set_activities(self, activities: List[Dict[str, Any]]):
