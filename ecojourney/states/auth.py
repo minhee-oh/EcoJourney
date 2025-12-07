@@ -65,8 +65,7 @@ class AuthState(BaseState):
                 student_id=self.signup_student_id,
                 password=hashed_password,
                 college=self.signup_college,
-                current_points=0,
-                avatar_status="NORMAL"
+                current_points=0
             )
             
             try:
