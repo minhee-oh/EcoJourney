@@ -6,9 +6,9 @@ from ecojourney.db import get_connection
 from ecojourney.schemas.user import UserCreate, User
 
 
-# ==========================
-# 내부용: student_id로 row 가져오기
-# ==========================
+# ======================================================
+# 내부 전용: student_id로 users 테이블 row 조회
+# ======================================================
 def _get_user_row(student_id: str) -> Optional[sqlite3.Row]:
     conn = get_connection()
     cur = conn.cursor()
@@ -21,18 +21,14 @@ def _get_user_row(student_id: str) -> Optional[sqlite3.Row]:
     return row
 
 
-# ==========================
-# 회원가입
-# ==========================
+# ======================================================
+# 회원가입: 비밀번호 해싱 후 users 테이블에 저장
+# ======================================================
 def create_user(user: UserCreate) -> None:
-    """
-    - 평문 비밀번호 → bcrypt 해시
-    - users 테이블에 INSERT
-    """
     conn = get_connection()
     cur = conn.cursor()
 
-    # 비밀번호 해시 생성
+    # 비밀번호 해시 생성 (bcrypt)
     hashed = bcrypt.hashpw(user.password.encode("utf-8"), bcrypt.gensalt())
     hashed_str = hashed.decode("utf-8")
 
@@ -45,33 +41,27 @@ def create_user(user: UserCreate) -> None:
             (user.student_id, hashed_str, user.college),
         )
         conn.commit()
-    except sqlite3.IntegrityError as e:
-        # PK(student_id) 중복 같은 에러는 위로 올려서 처리하게 둠
-        raise e
+    except sqlite3.IntegrityError:
+        # PK(student_id) 중복 등은 상위에서 처리
+        raise
     finally:
         conn.close()
 
 
-# ==========================
-# 로그인 검증
-# ==========================
-def verify_user(student_id: str, password: str, college: str) -> bool:
+# ======================================================
+# 로그인 검증: ID + 비밀번호만 체크
+# ======================================================
+def verify_user(student_id: str, password: str) -> bool:
     """
-    - student_id로 DB에서 사용자 찾고
-    - 단과대(college)도 일치하는지 확인
-    - bcrypt로 비밀번호 일치 여부까지 확인
+    단과대(college)는 검증에 사용하지 않고,
+    로그인 성공 후 별도로 조회해서 응답에 포함한다.
     """
     row = _get_user_row(student_id)
     if row is None:
         return False
 
-    # 1) 단과대 먼저 체크
-    if row["college"] != college:
-        return False
-
-    # 2) 비밀번호 해시 체크
     stored_hash = row["password_hash"]
-    if stored_hash is None:
+    if not stored_hash:
         return False
 
     return bcrypt.checkpw(
@@ -80,16 +70,14 @@ def verify_user(student_id: str, password: str, college: str) -> bool:
     )
 
 
-
-# ==========================
-# 유저 정보 조회 (응답용 User 모델)
-# ==========================
+# ======================================================
+# 유저 정보 조회: DB row → User 스키마로 변환
+# ======================================================
 def get_user(student_id: str) -> Optional[User]:
     row = _get_user_row(student_id)
     if row is None:
         return None
 
-    # Pydantic이 created_at을 datetime으로 파싱해 줄 거라 그냥 넘겨도 됨
     return User(
         student_id=row["student_id"],
         college=row["college"],

@@ -1,26 +1,51 @@
-# 파일 경로: ecojourney/services/llm_service.py
+# 파일 경로: ecojourney/ai/llm_service.py
 
 import json
 import logging
+import os
 from typing import Dict, Any
+
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
+# -------------------------------
+# 1) .env 파일에서 API 키 로드
+# -------------------------------
+load_dotenv(override=True) # 프로젝트 루트(OpenSourceProject/.env)에서 로드
+
 # Gemini API 설정
-GEMINI_API_KEY = "AIzaSyALCN1ZF7PeU22sSGOAK9JPIvUztaymMSc"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # .env에서 키 읽기
 MODEL_NAME = "gemini-flash-latest"
 
-# Gemini SDK 로딩
+# 🔍 디버그용: 키 앞부분만 찍어보기 (None일 때도 안전하게)
+key_prefix = GEMINI_API_KEY[:8] if GEMINI_API_KEY else "NONE"
+print(f"[DEBUG] llm_service loaded. GEMINI_API_KEY prefix: {key_prefix}")
+logger.info(f"[llm_service] GEMINI_API_KEY prefix: {key_prefix}")
+
+if not GEMINI_API_KEY:
+    logger.error("[llm_service] ❌ GEMINI_API_KEY 환경변수가 없습니다. .env 파일을 확인하세요.")
+else:
+    logger.info("[llm_service] 🔑 Gemini API Key 로드 성공")
+
+# -------------------------------
+# 2) Gemini SDK 로딩
+# -------------------------------
 try:
     import google.generativeai as genai
 except ImportError:
     genai = None
     logger.error("[llm_service] google-generativeai 패키지가 없습니다. pip install 필요.")
 
-# Gemini 초기화
+# -------------------------------
+# 3) Gemini 초기화
+# -------------------------------
 if genai and GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    logger.info("[llm_service] Gemini API 설정 완료")
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        logger.info("[llm_service] Gemini API 설정 완료")
+    except Exception as e:
+        logger.error(f"[llm_service] Gemini 초기화 실패: {e}")
 else:
     logger.warning("[llm_service] Gemini 사용 불가 → 시뮬레이션 응답 사용")
 
@@ -240,7 +265,7 @@ def create_coaching_prompt(
     )
 
     system_instruction = knowledge_rule["system_instruction"]
-    coaching_principles = "\n".join(
+    coaching_principles = "\n\n".join(
         [f"- {p}" for p in knowledge_rule.get("coaching_principles", [])]
     )
     json_schema = json.dumps(
