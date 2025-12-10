@@ -246,8 +246,8 @@ class CarbonState(AuthState):
             })
 
         if self.show_fastfood and form_data.get("fastfood_value"):
-            # 패스트푸드: 한국일보 기준만 (피자한국, 햄버거세트, 후라이드치킨)
-            fastfood_sub = form_data.get("fastfood_sub") or "피자한국"
+            # 패스트푸드: 한국일보 기준만 (피자, 햄버거세트, 후라이드치킨)
+            fastfood_sub = form_data.get("fastfood_sub") or "피자"
             food_data.append({
                 "category": "식품",
                 "activity_type": fastfood_sub,

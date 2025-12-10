@@ -517,7 +517,7 @@ FOOD_TYPE_MAP = {
     "카페라떼": "cafe_latte_korean",  # 한끼 기준 항목
     # 패스트푸드
     "햄버거": "hamburger",
-    "피자": "pizza",
+    "피자": "pizza_korean",  # 한국일보 기준 (서빙 기반)
     "치킨": "chicken_fastfood",
     "패스트푸드": "hamburger",  # 기본값
     # 양식 (완성된 파스타 요리만)
