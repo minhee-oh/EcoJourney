@@ -511,10 +511,10 @@ FOOD_TYPE_MAP = {
     "닭고기": "chicken",
     "고기류": "beef",  # 기본값
     # 쌀밥과 커피
-    "쌀밥": "rice_bowl",
+    "쌀밥": "rice_bowl_plain",
     "커피": "coffee",
     "아메리카노": "coffee",  # 커피 하위 카테고리
-    "카페라떼": "coffee",  # 커피 하위 카테고리
+    "카페라떼": "cafe_latte_korean",  # 한끼 기준 항목
     # 패스트푸드
     "햄버거": "hamburger",
     "피자": "pizza",
@@ -636,7 +636,7 @@ def calculate_food_by_name(food_name: str, weight_kg: float = None, servings: fl
     
     # 한끼 기준 항목 목록 (한국일보 한끼 밥상 탄소 계산기 출처)
     serving_based_types = {
-        "rice_bowl_mixed", "rice_bowl_brown", "rice_bowl_barley", "rice_bowl_bean",
+        "rice_bowl_plain", "rice_bowl_mixed", "rice_bowl_brown", "rice_bowl_barley", "rice_bowl_bean",
         "gimbap", "bibimbap_beef", "bibimbap_vegetable", "kimchi_fried_rice",
         "naengmyeon_cold", "naengmyeon_bibim", "janchi_guksu", "bibim_guksu", "haemul_kalguksu",
         "doenjang_guk", "miyeok_guk", "kongnamul_guk", "doenjang_jjigae", "kimchi_jjigae",
