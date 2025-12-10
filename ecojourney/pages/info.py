@@ -96,8 +96,8 @@ def quiz_card():
             rx.heading("OX 퀴즈", size="5", color="white"),
             rx.text("지구 온난화를 막기 위해서는 일회용품 사용을 줄여야 한다. (O/X)", color="gray.300"),
             rx.hstack(
-                rx.button("O", color_scheme="green", on_click=AppState.complete_daily_quiz),
-                rx.button("X", color_scheme="red", on_click=AppState.complete_daily_quiz),
+                rx.button("O", color_scheme="green", on_click=AppState.complete_daily_quiz_o),
+                rx.button("X", color_scheme="red", on_click=AppState.complete_daily_quiz_x),
                 spacing="3",
             ),
             spacing="3",

@@ -304,13 +304,24 @@ class ChallengeState(BattleState):
             self.challenge_message = f"정보 글 읽기 처리 중 오류: {e}"
             logger.error(self.challenge_message, exc_info=True)
 
-    async def complete_daily_quiz(self):
-        """일일 챌린지 - OX 퀴즈 완료 처리"""
+    async def _complete_daily_quiz_with_answer(self, is_correct: bool):
+        """일일 챌린지 - OX 퀴즈 완료 처리 (내부 메서드)
+        
+        Args:
+            is_correct: 사용자가 선택한 답이 정답인지 여부 (True: O, False: X)
+        """
         if not self.is_logged_in:
             self.challenge_message = "로그인 후 이용해주세요."
             return
         self.challenge_message = ""
         try:
+            # 정답 확인: "지구 온난화를 막기 위해서는 일회용품 사용을 줄여야 한다"의 정답은 O(True)
+            correct_answer = True  # O가 정답
+            
+            if is_correct != correct_answer:
+                self.challenge_message = "틀렸습니다. 다시 시도해주세요."
+                return
+            
             await self.ensure_default_challenges()
             await self.load_active_challenges()
             challenge = next((c for c in self.active_challenges if c["type"] == "DAILY_QUIZ"), None)
@@ -323,6 +334,14 @@ class ChallengeState(BattleState):
         except Exception as e:
             self.challenge_message = f"OX 퀴즈 처리 중 오류: {e}"
             logger.error(self.challenge_message, exc_info=True)
+
+    async def complete_daily_quiz_o(self):
+        """일일 챌린지 - OX 퀴즈 O 버튼 클릭 처리"""
+        await self._complete_daily_quiz_with_answer(True)
+
+    async def complete_daily_quiz_x(self):
+        """일일 챌린지 - OX 퀴즈 X 버튼 클릭 처리"""
+        await self._complete_daily_quiz_with_answer(False)
 
     async def mark_daily_record(self):
         """주간 챌린지 - 7일 연속 기록 진행도 업데이트"""
