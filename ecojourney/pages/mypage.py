@@ -208,24 +208,25 @@ def mypage_page() -> rx.Component:
                         rx.vstack(
                             rx.heading("💳 비컴 마일리지 환산", size="6", color="white", margin_bottom="20px"),
                             rx.text(
-                                "포인트 100점당 비컴 마일리지 10점으로 환산됩니다.",
+                                "포인트 1000점당 비컴 마일리지 10점으로 환산됩니다.",
                                 color="gray.300",
                                 size="3",
                                 margin_bottom="15px",
                             ),
                             rx.text(
-                                "최소 100점 이상부터 환산 신청이 가능합니다.",
+                                "최소 1000점 이상부터 환산 신청이 가능합니다. (1000점 단위로만 입력 가능)",
                                 color="gray.400",
                                 size="2",
                                 margin_bottom="20px",
                             ),
                             rx.hstack(
                                 rx.input(
-                                    placeholder="환산할 포인트 입력 (최소 100점)",
+                                    placeholder="환산할 포인트 입력 (최소 1000점, 1000점 단위)",
                                     value=AppState.mileage_request_points,
                                     on_change=AppState.set_mileage_request_points,
                                     type="number",
-                                    min=100,
+                                    min=1000,
+                                    step=1000,
                                     width="200px",
                                     color="white",
                                     border="1px solid rgba(255, 255, 255, 0.3)",
@@ -235,7 +236,7 @@ def mypage_page() -> rx.Component:
                                     on_click=AppState.request_mileage_conversion,
                                     color_scheme="green",
                                     size="3",
-                                    is_disabled=AppState.current_user_points < 100,
+                                    is_disabled=AppState.current_user_points < 1000,
                                 ),
                                 spacing="3",
                                 align="center",
@@ -253,9 +254,9 @@ def mypage_page() -> rx.Component:
                                 rx.text("", display="none"),
                             ),
                             rx.cond(
-                                AppState.mileage_request_points >= 100,
+                                AppState.mileage_request_points >= 1000,
                                 rx.text(
-                                    f"환산 예상 마일리지: {(AppState.mileage_request_points // 100) * 10}점",
+                                    f"환산 예상 마일리지: {(AppState.mileage_request_points // 1000) * 10}점",
                                     color="green.300",
                                     size="3",
                                     font_weight="bold",

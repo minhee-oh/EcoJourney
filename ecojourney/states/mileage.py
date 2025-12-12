@@ -21,9 +21,14 @@ class MileageState(BattleState):
     mileage_conversion_logs: List[Dict[str, Any]] = []  # 환산 내역 로그
     
     def set_mileage_request_points(self, value: str):
-        """환산할 포인트 설정"""
+        """환산할 포인트 설정 (1000점 단위로만 입력 가능)"""
         try:
-            self.mileage_request_points = int(value) if value else 0
+            if value:
+                input_value = int(value)
+                # 1000점 단위로 반올림 (1000점 미만은 0으로 처리)
+                self.mileage_request_points = (input_value // 1000) * 1000
+            else:
+                self.mileage_request_points = 0
         except ValueError:
             self.mileage_request_points = 0
     
@@ -33,8 +38,8 @@ class MileageState(BattleState):
             self.mileage_error_message = "로그인이 필요합니다."
             return
         
-        if self.mileage_request_points < 100:
-            self.mileage_error_message = "환산 신청은 최소 100점 이상부터 가능합니다."
+        if self.mileage_request_points < 1000:
+            self.mileage_error_message = "환산 신청은 최소 1000점 이상부터 가능합니다."
             return
         
         if self.mileage_request_points > self.current_user_points:
@@ -45,9 +50,9 @@ class MileageState(BattleState):
             from sqlmodel import Session, create_engine, select
             import os
             
-            # 환산 비율: 포인트 100점 = 비컴 마일리지 10점 (10:1 비율)
-            # 즉, 포인트 100점당 마일리지 10점
-            converted_mileage = (self.mileage_request_points // 100) * 10
+            # 환산 비율: 포인트 1000점 = 비컴 마일리지 10점 (100:1 비율)
+            # 즉, 포인트 1000점당 마일리지 10점
+            converted_mileage = (self.mileage_request_points // 1000) * 10
             
             db_path = os.path.join(os.getcwd(), "reflex.db")
             db_url = f"sqlite:///{db_path}"
