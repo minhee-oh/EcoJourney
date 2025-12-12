@@ -1,5 +1,7 @@
 # 파일 경로: ecojourney/ai/llm_service.py
-
+# 탄소 배출량 데이터를 바탕으로
+# AI(Gemini)를 호출해 코칭 리포트를 생성하고,
+# 실패 시에도 항상 사용할 수 있는 대체 응답을 제공하는 서비스 모듈
 import json
 import logging
 import os
@@ -55,16 +57,31 @@ else:
 # ======================================================================
 def _build_simulated_response(user_data: Dict[str, Any]) -> Dict[str, Any]:
     """Gemini 호출 실패 시 기본 템플릿 기반 JSON 응답 생성"""
-    carbon_data = user_data.get("category_carbon_data", {}) or {}
-    total_carbon_kg = user_data.get("total_carbon_kg", 0.0)
 
+    def _safe_float(value: Any) -> float:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return 0.0
+
+    # 원본 데이터
+    raw_carbon_data = user_data.get("category_carbon_data", {}) or {}
+
+    # 모든 값을 float으로 한 번 정리
+    carbon_data = {
+        k: _safe_float(v) for k, v in raw_carbon_data.items()
+    }
+
+    total_carbon_kg = _safe_float(user_data.get("total_carbon_kg", 0.0))
+
+    # 데이터 있는지 체크 (0보다 큰 값이 하나라도 있는지)
     has_data = bool(carbon_data) and any(v > 0 for v in carbon_data.values())
 
     # 데이터가 있을 때
     if has_data:
         max_category = max(carbon_data, key=carbon_data.get)
-        max_value = float(carbon_data[max_category])
-        total = float(sum(carbon_data.values())) or 1.0
+        max_value = carbon_data[max_category]
+        total = sum(carbon_data.values()) or 1.0
         max_ratio = (max_value / total) * 100
 
         # 두 번째 카테고리
@@ -120,20 +137,20 @@ def _build_simulated_response(user_data: Dict[str, Any]) -> Dict[str, Any]:
             {
                 "action": "비슷한 상황을 위한 플랜 B 만들기",
                 "detail": (
-                    "바쁜 시간대에 쓰는 이동/소비 패턴을 떠올리고 "
-                    "대체 행동 1가지만 미리 정해두세요."
+                    "행동 패턴을 맞추거나 예측은 어렵기에 그냥 아예 대안 자체를 추천하는 걸로 가야합니다,"
+                    "각 카테고리별로 뻔하지 않은 대안들을 추천하세요."
                 ),
                 "impact": "반복될수록 감축 효과가 누적됩니다.",
                 "reason": "오늘 데이터가 반복 패턴의 힌트를 제공하기 때문입니다.",
             },
             {
-                "action": "탄소가 많이 오른 '위험 시간대' 인지하기",
+                "action": "실생활에서 할 수 있는 현실적인 대안을 생각해서 추천해주기",
                 "detail": (
-                    "탄소 사용이 증가한 시간대를 떠올리고, "
-                    "해당 시간대에 선택을 한 번 더 점검해보세요."
+                    "뻔한 내용이여도 디테일을 추가해서 더 섬세해보이게, "
+                    "수치나 결과론적인 것들로 더욱더 잘 보이게 해주세요."
                 ),
-                "impact": "충동 소비·이동 감소 효과",
-                "reason": "시간대 기반 패턴 파악이 행동 조절에 효과적이기 때문입니다.",
+                "impact": "카테고리별 배출량을 파악해서 대안 추천하기, 뻔한 '채소를 드세요.', '승용차 대신 버스를 이용하세요', '옷을 오래 입으세요', '분리수거를 잘하세요', '물이나 전기를 아끼세요' 금지",
+                "reason": "사용자가 흥미를 가지기 위해서, 그리고 다른 웹사이트나 정보에 대한 차별성을 두기 위해서 입니다.",
             },
         ]
 
@@ -180,6 +197,7 @@ def _build_simulated_response(user_data: Dict[str, Any]) -> Dict[str, Any]:
         }
 
     return simulated
+
 
 
 # ======================================================================
