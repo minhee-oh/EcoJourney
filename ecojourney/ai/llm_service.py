@@ -16,7 +16,11 @@ load_dotenv(override=True) # 프로젝트 루트(OpenSourceProject/.env)에서 �
 
 # Gemini API 설정
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # .env에서 키 읽기
-MODEL_NAME = "gemini-flash-latest"
+PRIMARY_MODEL = "gemini-2.5"  # 기본 모델
+FALLBACK_MODELS = [
+    "gemini-1.5-flash",    # 1차 대체 모델 (실제 사용 가능)
+    "gemini-1.5-flash-latest",  # 2차 대체 모델
+]
 
 # 키 존재 여부만 로깅 (민감정보 미노출)
 if not GEMINI_API_KEY:
@@ -179,58 +183,98 @@ def _build_simulated_response(user_data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # ======================================================================
-# 2) Gemini 호출 + JSON 파싱
+# 2) Gemini 모델 호출 헬퍼 함수
+# ======================================================================
+def _call_gemini_model(model_name: str, prompt: str) -> str:
+    """특정 Gemini 모델로 API 호출"""
+    model = genai.GenerativeModel(model_name)
+    response = model.generate_content(prompt)
+    
+    # 응답 텍스트 안전 추출 (candidates/parts 우선)
+    raw_text = ""
+    try:
+        if hasattr(response, "candidates") and response.candidates:
+            for cand in response.candidates:
+                parts = getattr(cand, "content", None) or getattr(cand, "parts", None)
+                if parts and hasattr(parts, "__iter__"):
+                    texts = [
+                        getattr(p, "text", None) or str(getattr(p, "data", "")) or ""
+                        for p in parts
+                        if p is not None
+                    ]
+                    joined = "\n".join([t for t in texts if t]).strip()
+                    if joined:
+                        raw_text = joined
+                        break
+        if not raw_text:
+            raw_text = (getattr(response, "text", None) or "").strip()
+    except Exception:
+        raw_text = (getattr(response, "text", None) or "").strip()
+
+    if not raw_text:
+        raise ValueError("LLM 응답에 텍스트가 없습니다.")
+    
+    return raw_text
+
+# ======================================================================
+# 3) Gemini 호출 + JSON 파싱 + 다른 모델 폴백
 # ======================================================================
 def call_llm_api(prompt: str, user_data: Dict[str, Any]) -> str:
-    """Gemini 호출 → JSON 파싱 → 실패 시 폴백 JSON 반환"""
+    """Gemini 기본 모델 호출 → 실패 시 다른 Gemini 모델들 시도 → 실패 시 폴백 JSON 반환"""
     if not genai or not GEMINI_API_KEY:
         simulated = _build_simulated_response(user_data)
         return json.dumps(simulated, ensure_ascii=False, indent=4)
 
-    try:
-        model = genai.GenerativeModel(MODEL_NAME)
-        response = model.generate_content(prompt)
-        # 응답 텍스트 안전 추출 (candidates/parts 우선)
-        raw_text = ""
+    # 시도할 모델 목록 (기본 모델 + 대체 모델들)
+    models_to_try = [PRIMARY_MODEL] + FALLBACK_MODELS
+    
+    for model_name in models_to_try:
         try:
-            if hasattr(response, "candidates") and response.candidates:
-                for cand in response.candidates:
-                    parts = getattr(cand, "content", None) or getattr(cand, "parts", None)
-                    if parts and hasattr(parts, "__iter__"):
-                        texts = [
-                            getattr(p, "text", None) or str(getattr(p, "data", "")) or ""
-                            for p in parts
-                            if p is not None
-                        ]
-                        joined = "\n".join([t for t in texts if t]).strip()
-                        if joined:
-                            raw_text = joined
-                            break
-            if not raw_text:
-                raw_text = (getattr(response, "text", None) or "").strip()
-        except Exception:
-            raw_text = (getattr(response, "text", None) or "").strip()
+            raw_text = _call_gemini_model(model_name, prompt)
+            
+            # 코드블록(```) 제거
+            if raw_text.startswith("```"):
+                lines = raw_text.splitlines()
+                if len(lines) >= 2 and lines[0].startswith("```") and lines[-1].startswith("```"):
+                    lines = lines[1:-1]
+                if lines and lines[0].strip().lower() == "json":
+                    lines = lines[1:]
+                raw_text = "\n".join(lines).strip()
 
-        if not raw_text:
-            raise ValueError("LLM 응답에 텍스트가 없습니다.")
+            # JSON 파싱
+            parsed = json.loads(raw_text)
+            if model_name == PRIMARY_MODEL:
+                logger.info(f"[llm_service] ✅ {model_name} 성공")
+            else:
+                logger.info(f"[llm_service] ✅ {model_name} 성공 (대체 모델)")
+            return json.dumps(parsed, ensure_ascii=False, indent=4)
 
-        # 코드블록(```) 제거
-        if raw_text.startswith("```"):
-            lines = raw_text.splitlines()
-            if len(lines) >= 2 and lines[0].startswith("```") and lines[-1].startswith("```"):
-                lines = lines[1:-1]
-            if lines and lines[0].strip().lower() == "json":
-                lines = lines[1:]
-            raw_text = "\n".join(lines).strip()
-
-        # JSON 파싱
-        parsed = json.loads(raw_text)
-        return json.dumps(parsed, ensure_ascii=False, indent=4)
-
-    except Exception as e:
-        logger.error("[llm_service] Gemini 실패 → 폴백 사용: %s", e)
-        simulated = _build_simulated_response(user_data)
-        return json.dumps(simulated, ensure_ascii=False, indent=4)
+        except Exception as e:
+            error_str = str(e)
+            logger.error(f"[llm_service] {model_name} 호출 실패: {error_str}")
+            
+            # 429 에러(할당량 초과) 또는 quota 관련 에러인 경우 다음 모델로 전환
+            if "429" in error_str or "quota" in error_str.lower() or "Quota exceeded" in error_str:
+                logger.warning(f"[llm_service] {model_name} 할당량 초과 → 다음 모델 시도")
+            # 모델을 찾을 수 없는 경우 (404 에러 포함)
+            elif "not found" in error_str.lower() or "invalid" in error_str.lower() or "does not exist" in error_str.lower() or "not available" in error_str.lower() or "404" in error_str:
+                logger.warning(f"[llm_service] {model_name} 모델을 찾을 수 없음 → 다음 모델 시도")
+            # API 키 관련 에러
+            elif "api key" in error_str.lower() or "authentication" in error_str.lower() or "unauthorized" in error_str.lower() or "403" in error_str:
+                logger.error(f"[llm_service] API 키 인증 실패: {model_name} - .env 파일의 GEMINI_API_KEY를 확인하세요")
+                # API 키 문제는 모든 모델에서 동일하므로 즉시 폴백
+                break
+            else:
+                logger.warning(f"[llm_service] {model_name} 실패 → 다음 모델 시도: {e}")
+            
+            # 마지막 모델이 아니면 계속 시도
+            if model_name != models_to_try[-1]:
+                continue
+    
+    # 모든 Gemini 모델 실패 시 폴백
+    logger.warning("[llm_service] 모든 Gemini 모델 실패 → 폴백 사용")
+    simulated = _build_simulated_response(user_data)
+    return json.dumps(simulated, ensure_ascii=False, indent=4)
 
 
 # ======================================================================

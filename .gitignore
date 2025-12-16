@@ -251,6 +251,7 @@ test_data/
 dummy_data/
 test_*.db
 *_test.db
+delete_users.py
 
 
 

@@ -559,7 +559,11 @@ def report_page() -> rx.Component:
                                 rx.button(
                                     "💾 저장하기",
                                     on_click=AppState.save_carbon_log_to_db,
-                                    is_disabled=~AppState.is_report_calculated,
+                                    is_disabled=rx.cond(
+                                        AppState.is_saving,
+                                        True,
+                                        ~AppState.is_report_calculated
+                                    ),
                                     background_color="#4DAB75",
                                     color="#FFFFFF",
                                     border_radius="25px",

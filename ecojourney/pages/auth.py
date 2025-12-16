@@ -78,12 +78,12 @@ def auth_page() -> rx.Component:
         </style>
         """),
         
-        # 배경 레이어 - 연두색
+        # 배경 레이어 - 연두색 (화면 전체를 항상 덮도록 고정)
         rx.box(
             width="100%",
-            min_height="100vh",
+            height="100vh",
             background="rgba(144, 238, 144, 0.3)",
-            position="absolute",
+            position="fixed",
             top="0",
             left="0",
             z_index="0",
@@ -93,35 +93,7 @@ def auth_page() -> rx.Component:
         rx.center(
             rx.box(
                 rx.vstack(
-                    # 타이틀 섹션
-                    rx.vstack(
-                        rx.heading(
-                            "ECOJOURNEY",
-                            size="9",
-                            color="#333333",
-                            font_weight="800",
-                            letter_spacing="0.05em",
-                            margin_bottom="16px",
-                            style={
-                                "font-family": "'Poppins', sans-serif",
-                                "text-transform": "uppercase",
-                            },
-                            class_name="auth-card",
-                        ),
-                        rx.text(
-                            "환경을 위한 여정에 함께하세요",
-                            size="6",
-                            color="#666666",
-                            font_weight="600",
-                            style={
-                                "font-family": "'Noto Sans KR', 'Poppins', sans-serif",
-                            },
-                            class_name="auth-card",
-                        ),
-                        spacing="2",
-                        align="center",
-                        margin_bottom="60px",
-                    ),
+                    
                     
                     # 로그인/회원가입 카드
                     rx.box(
@@ -386,7 +358,7 @@ def auth_page() -> rx.Component:
                         ),
                         width="100%",
                         max_width="450px",
-                        padding="50px 40px",
+                        padding="30px 40px",
                         background="#FFFFFF",
                         border="1px solid rgba(77, 171, 117, 0.2)",
                         border_radius="24px",

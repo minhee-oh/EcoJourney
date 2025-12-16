@@ -215,12 +215,15 @@ def ranking_page() -> rx.Component:
                                     ),
                                     rx.vstack(
                                         rx.cond(
-                                            battle["winner"] == battle["college_a"],
+                                            # 사용자의 단과대가 승리했는지 확인
+                                            battle["winner"] == AppState.current_user_college,
                                             rx.badge("WIN", color_scheme="green", size="2"),
                                             rx.cond(
-                                                battle["winner"] == battle["college_b"],
-                                                rx.badge("LOSE", color_scheme="red", size="2"),
+                                                # 무승부인지 확인
+                                                battle["winner"] == None,
                                                 rx.badge("DRAW", color_scheme="gray", size="2"),
+                                                # 사용자의 단과대가 패배한 경우
+                                                rx.badge("LOSE", color_scheme="red", size="2"),
                                             ),
                                         ),
                                         rx.text("VS", size="4", weight="bold", color="#4DAB75"),
@@ -249,7 +252,7 @@ def ranking_page() -> rx.Component:
                                 ),
                                 rx.divider(margin_y="10px"),
                                 rx.text(
-                                    f"날짜: {battle['start_date']}",
+                                    f"기간: {battle['start_date']} ~ {battle['end_date']}",
                                     size="2",
                                     color="gray.600",
                                 ),

@@ -1072,8 +1072,9 @@ class CarbonState(AuthState):
     async def calculate_report(self):
         """리포트 페이지에서 전체 탄소 배출량을 계산합니다."""
         logger.info("[리포트 계산] 시작 - 전체 활동 데이터 계산 중...")
-        print(f"[리포트 계산] all_activities 개수: {len(self.all_activities)}")
-        print(f"[리포트 계산] all_activities 내용: {self.all_activities}")
+        # 새 리포트 계산을 시작할 때, 이전 저장 메시지/상태 초기화
+        self.save_message = ""
+        self.is_save_success = False
         
         try:
             from ..service.carbon_calculator import calculate_carbon_emission
@@ -1400,6 +1401,35 @@ class CarbonState(AuthState):
                 self.current_user_points = user.current_points
                 session.add(user)
                 
+                # 포인트 획득 이유 설명 생성 (포인트가 있을 때만)
+                description = "환경 친화적 활동"
+                if points_earned > 0:
+                    reasons = []
+                    if self.total_saved_emission > 0:
+                        reasons.append(f"절약량 {self.total_saved_emission}kg")
+                    # 빈티지 제품 사용 확인
+                    vintage_count = sum(
+                        int(act.get("value", 0))
+                        for act in self.all_activities
+                        if act.get("category") == "의류"
+                        and (
+                            act.get("sub_category") == "빈티지"
+                            or act.get("subcategory") == "빈티지"
+                            or act.get("sub") == "빈티지"
+                        )
+                    )
+                    if vintage_count > 0:
+                        reasons.append(f"빈티지 제품 {vintage_count}개")
+                    # 평균보다 낮은 배출량 확인
+                    from ..service.average_data import get_total_average
+
+                    avg_emission = get_total_average()
+                    if total_emission < avg_emission:
+                        diff = avg_emission - total_emission
+                        reasons.append(f"평균보다 {diff:.1f}kg 낮음")
+                    
+                    description = ", ".join(reasons) if reasons else "환경 친화적 활동"
+                
                 # 한 번에 commit
                 session.commit()
                 session.refresh(log)
@@ -1409,25 +1439,8 @@ class CarbonState(AuthState):
                 logger.info(f"[저장 완료] DB 확인 - 사용자 포인트: {user.current_points}점, 로그 포인트: {log.points_earned}점")
                 
                 if points_earned > 0:
-                    # 포인트 획득 이유 메시지 생성
-                    reasons = []
-                    if self.total_saved_emission > 0:
-                        reasons.append(f"절약량 {self.total_saved_emission}kg")
-                    # 빈티지 제품 사용 확인
-                    vintage_count = sum(int(act.get("value", 0)) for act in self.all_activities 
-                                      if act.get("category") == "의류" 
-                                      and (act.get("sub_category") == "빈티지" or act.get("subcategory") == "빈티지" or act.get("sub") == "빈티지"))
-                    if vintage_count > 0:
-                        reasons.append(f"빈티지 제품 {vintage_count}개")
-                    # 평균보다 낮은 배출량 확인
-                    from ..service.average_data import get_total_average
-                    avg_emission = get_total_average()
-                    if total_emission < avg_emission:
-                        diff = avg_emission - total_emission
-                        reasons.append(f"평균보다 {diff:.1f}kg 낮음")
-                    
-                    reason_text = ", ".join(reasons) if reasons else "환경 친화적 활동"
-                    self.save_message = f"✅ 저장 완료! {reason_text}으로 {points_earned}점을 획득했습니다."
+                    # 포인트 획득 이유 메시지 생성 (위에서 생성한 description 재사용)
+                    self.save_message = f"✅ 저장 완료! {description}으로 {points_earned}점을 획득했습니다."
                 else:
                     self.save_message = "✅ 저장 완료!"
                 
@@ -1435,6 +1448,9 @@ class CarbonState(AuthState):
                 self.has_today_log = True  # 저장 완료 후 오늘 날짜 로그 존재 표시
             
             self.is_saving = False
+            
+            # 저장 완료 후 다시 저장할 수 있도록 저장 메시지를 일정 시간 후 초기화하지 않음
+            # (사용자가 여러 번 저장할 수 있도록 상태 유지)
             
             # 저장 성공 시 마이페이지 데이터 새로고침 (포인트 로그 업데이트)
             if self.is_save_success:
@@ -2105,40 +2121,36 @@ class CarbonState(AuthState):
             self.is_loading_ai = False
 
     async def on_report_page_load(self):
-        """리포트 페이지 로드 시 자동으로 계산 및 AI 분석 실행 (하루에 여러 번 가능)"""
-        import sys
-        print("[리포트 페이지] 자동 계산 시작...", file=sys.stderr, flush=True)
-        print(f"[리포트 페이지] all_activities 개수: {len(self.all_activities)}", file=sys.stderr, flush=True)
-        print(f"[리포트 페이지] all_activities 내용: {self.all_activities}", file=sys.stderr, flush=True)
-        
+        """리포트 페이지 로드 시 자동으로 계산 및 AI 분석 실행"""
         try:
-            # 리포트는 항상 새로 계산 (하루에 여러 번 생성 가능)
-            print("[리포트 페이지] 리포트 계산 시작...")
+            # 새 리포트를 볼 때마다 이전 저장 메시지는 초기화
+            self.save_message = ""
+            self.is_save_success = False
+            
+            # 이미 계산된 리포트가 있으면 재계산하지 않음 (로딩 시간 단축)
+            if self.is_report_calculated and self.total_carbon_emission > 0:
+                # 이미 계산된 리포트가 있으면 AI 분석만 확인
+                if not self.ai_analysis_result:
+                    await self.generate_ai_analysis()
+                return
+            
+            # 리포트가 계산되지 않았거나 활동 데이터가 변경된 경우에만 계산
             if len(self.all_activities) == 0:
-                print("[리포트 페이지] ⚠️ 경고: all_activities가 비어있습니다!")
                 # 빈 리포트라도 계산 완료로 표시
                 self.total_carbon_emission = 0.0
                 self.is_report_calculated = True
                 self.calculation_details = []
                 self.ai_analysis_result = ""  # AI 분석도 초기화
             else:
-                # 리포트 재계산 (항상 새로 계산)
-                self.is_report_calculated = False
-                self.ai_analysis_result = ""  # AI 분석도 초기화하여 재생성
-                await self.calculate_report()
-                print(f"[리포트 페이지] 리포트 계산 완료. is_report_calculated: {self.is_report_calculated}")
-                print(f"[리포트 페이지] 총 배출량: {self.total_carbon_emission}kgCO2e")
+                # 리포트 계산 (한 번만)
+                if not self.is_report_calculated:
+                    self.ai_analysis_result = ""  # AI 분석도 초기화하여 재생성
+                    await self.calculate_report()
             
-            # AI 분석 실행 (항상 새로 생성)
-            if self.is_report_calculated:
-                print("[리포트 페이지] AI 분석 시작...")
+            # AI 분석 실행 (결과가 없을 때만)
+            if self.is_report_calculated and not self.ai_analysis_result:
                 await self.generate_ai_analysis()
-            
-            print("[리포트 페이지] 자동 계산 및 AI 분석 완료")
-        except Exception as e:
-            print(f"[리포트 페이지] ❌ 오류 발생: {e}")
-            import traceback
-            traceback.print_exc()
+        except Exception:
             # 오류 발생 시에도 리포트 표시 가능하도록
             if not self.is_report_calculated:
                 self.total_carbon_emission = 0.0

@@ -127,7 +127,7 @@ def battle_page() -> rx.Component:
                                         rx.vstack(
                                             rx.text(AppState.current_battle["college_a"], size="6", font_weight="bold", color="blue.600"),
                                             rx.text(f"총 포인트: {AppState.current_battle['score_a']}", size="5", color="#333333", font_weight="bold"),
-                                            rx.text(f"참가 인원: {AppState.current_battle['participants_a']}명", size="5", color="gray.600", font_weight="bold"),
+                                            rx.text(f"참가 인원: {AppState.current_battle['participants_a']}명", size="5", color="gray.600", font_weight="normal"),
                                             align="center",
                                             spacing="2",
                                         ),
@@ -135,7 +135,7 @@ def battle_page() -> rx.Component:
                                         rx.vstack(
                                             rx.text(AppState.current_battle["college_b"], size="6", font_weight="bold", color="red.600"),
                                             rx.text(f"총 포인트: {AppState.current_battle['score_b']}", size="5", color="#333333", font_weight="bold"),
-                                            rx.text(f"참가 인원: {AppState.current_battle['participants_b']}명", size="5", color="gray.600", font_weight="bold"),
+                                            rx.text(f"참가 인원: {AppState.current_battle['participants_b']}명", size="5", color="gray.600", font_weight="normal"),
                                             align="center",
                                             spacing="2",
                                         ),

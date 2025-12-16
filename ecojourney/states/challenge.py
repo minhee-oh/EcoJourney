@@ -371,6 +371,23 @@ class ChallengeState(MileageState):
                     challenge_id = challenge["id"]
                     progress = progress_dict.get(challenge_id)
                     
+                    # 주간 연속 기록용: 이번 주 기록 일수 재계산 (CarbonLog 기준)
+                    weekly_streak_value = 0
+                    if challenge["type"] == "WEEKLY_STREAK":
+                        from ..models import CarbonLog  # 지연 import
+                        weekly_logs = list(
+                            session.exec(
+                                select(CarbonLog).where(
+                                    CarbonLog.student_id == self.current_user_id,
+                                    CarbonLog.log_date >= this_monday,
+                                    CarbonLog.log_date <= today,
+                                    CarbonLog.source == "carbon_input",
+                                )
+                            ).all()
+                        )
+                        distinct_days = {log.log_date for log in weekly_logs if log.log_date}
+                        weekly_streak_value = len(distinct_days)
+                    
                     if progress:
                         # 일일/주간 리셋 처리 (UI 조회 시점에도 적용)
                         last_updated_date = progress.last_updated.date() if progress.last_updated else None
@@ -390,37 +407,56 @@ class ChallengeState(MileageState):
                         
                         if challenge["type"] == "WEEKLY_STREAK":
                             if last_updated_date and last_updated_date < this_monday:
+                                # 주가 바뀐 경우 0부터 다시 시작
                                 progress.current_value = 0
                                 progress.is_completed = False
                                 progress.completed_at = None
                                 progress.last_updated = datetime.now()
-                                session.add(progress)
-                                session.commit()
-                                session.refresh(progress)
+                            # CarbonLog 기준으로 이번 주 연속 기록 일수 재계산
+                            progress.current_value = weekly_streak_value
+                            if progress.current_value >= challenge["goal_value"]:
+                                progress.is_completed = True
+                            session.add(progress)
+                            session.commit()
+                            session.refresh(progress)
                         
-                        progress_percent = (progress.current_value / challenge["goal_value"]) * 100 if challenge["goal_value"] > 0 else 0
-                        result.append({
-                            "challenge_id": challenge_id,
-                            "title": challenge["title"],
-                            "type": challenge["type"],
-                            "goal_value": challenge["goal_value"],
-                            "current_value": progress.current_value,
-                            "progress_percent": min(progress_percent, 100),
-                            "is_completed": progress.is_completed,
-                            "reward_points": challenge["reward_points"]
-                        })
+                        progress_percent = (
+                            progress.current_value / challenge["goal_value"] * 100
+                            if challenge["goal_value"] > 0
+                            else 0
+                        )
+                        result.append(
+                            {
+                                "challenge_id": challenge_id,
+                                "title": challenge["title"],
+                                "type": challenge["type"],
+                                "goal_value": challenge["goal_value"],
+                                "current_value": progress.current_value,
+                                "progress_percent": min(progress_percent, 100),
+                                "is_completed": progress.is_completed,
+                                "reward_points": challenge["reward_points"],
+                            }
+                        )
                     else:
-                        # 진행도가 없으면 0으로 시작
-                        result.append({
-                            "challenge_id": challenge_id,
-                            "title": challenge["title"],
-                            "type": challenge["type"],
-                            "goal_value": challenge["goal_value"],
-                            "current_value": 0,
-                            "progress_percent": 0,
-                            "is_completed": False,
-                            "reward_points": challenge["reward_points"]
-                        })
+                        # 진행도가 없으면, WEEKLY_STREAK는 이번 주 기록 일수로 초기화
+                        current_value = weekly_streak_value if challenge["type"] == "WEEKLY_STREAK" else 0
+                        progress_percent = (
+                            current_value / challenge["goal_value"] * 100
+                            if challenge["goal_value"] > 0
+                            else 0
+                        )
+                        result.append(
+                            {
+                                "challenge_id": challenge_id,
+                                "title": challenge["title"],
+                                "type": challenge["type"],
+                                "goal_value": challenge["goal_value"],
+                                "current_value": current_value,
+                                "progress_percent": min(progress_percent, 100),
+                                "is_completed": False,
+                                "reward_points": challenge["reward_points"],
+                            }
+                        )
                 
                 self.user_challenge_progress = result
             
@@ -595,13 +631,17 @@ class ChallengeState(MileageState):
                 
                 for log in points_logs:
                     points = log.points
+                    # "탄소 배출 리포트 저장"으로 시작하는 description은 필터링 (중복 방지)
+                    description = log.description or log.source or "포인트 변동"
+                    if description and description.startswith("탄소 배출 리포트 저장"):
+                        continue  # 이 항목은 건너뛰기 (CarbonLog에서 이미 표시됨)
                     # 양수/음수 모두 포함 (0은 제외하지 않음)
                     result.append({
                         "date": log.log_date.strftime("%Y-%m-%d") if log.log_date else (log.created_at.strftime("%Y-%m-%d") if hasattr(log, "created_at") and log.created_at else ""),
                         "points": points,
                         "is_positive": points > 0,  # 양수/음수 플래그
                         "source": log.source,
-                        "description": log.description or log.source or "포인트 변동",
+                        "description": description,
                         "created_at": log.created_at if hasattr(log, "created_at") else None
                     })
                 
@@ -874,127 +914,129 @@ class ChallengeState(MileageState):
             # 한달 최대 배출량 계산 (그래프 높이 정규화용)
             max_monthly_emission = max(monthly_daily_dict.values()) if monthly_daily_dict else 1.0
             
-            # 데이터가 없으면 더미 데이터를 DB에 생성
-            if len(monthly_logs) == 0:
-                # 기존 더미 데이터 삭제
-                self.delete_dummy_data()
-                
-                import random
-                import json
-                with Session(engine) as session:
-                    # 사용자 조회 (한 번만)
-                    user = session.exec(
-                        select(User).where(User.student_id == self.current_user_id)
-                    ).first()
-                    
-                    if not user:
-                        logger.error(f"[더미 데이터] 사용자를 찾을 수 없습니다: {self.current_user_id}")
-                        return
-                    
-                    total_points = 0
-                    # 최근 30일 동안의 더미 데이터 생성 (다양한 패턴으로)
-                    base_emission = 10.0  # 기본 배출량
-                    for i in range(30):
-                        current_date = one_month_ago + timedelta(days=i)
-                        if current_date > today:
-                            break
-                        
-                        # 주기적인 패턴 추가 (주간 패턴)
-                        day_of_week = current_date.weekday()
-                        weekday_factor = 1.0 if day_of_week < 5 else 0.7  # 주말은 30% 감소
-                        
-                        # 장기 트렌드 추가 (시간에 따른 변화)
-                        trend_factor = 1.0 + (i / 30.0) * 0.3  # 점진적 증가
-                        
-                        # 랜덤 변동 추가 (일일 변동)
-                        random_variation = random.uniform(0.7, 1.3)
-                        
-                        # 주기적인 피크 추가 (일부 날짜에 높은 값)
-                        peak_factor = 1.0
-                        if i % 7 == 3:  # 목요일마다 약간 높게
-                            peak_factor = 1.2
-                        elif i % 10 == 0:  # 10일마다 한 번씩 매우 높게
-                            peak_factor = 1.5
-                        elif i % 5 == 2:  # 5일마다 한 번씩 낮게
-                            peak_factor = 0.6
-                        
-                        # 최종 배출량 계산
-                        emission = round(base_emission * weekday_factor * trend_factor * random_variation * peak_factor, 2)
-                        # 범위 제한 (3~25kg)
-                        emission = max(3.0, min(25.0, emission))
-                        
-                        # 더미 포인트 생성 (배출량에 비례하되 변동 추가)
-                        points = random.randint(50, 200)
-                        total_points += points
-                        
-                        # 더미 활동 데이터 생성
-                        dummy_activities = [
-                            {"category": "교통", "activity_type": "자동차", "value": random.uniform(10, 50), "unit": "km"},
-                            {"category": "식품", "activity_type": "소고기", "value": random.uniform(100, 300), "unit": "g"},
-                        ]
-                        
-                        # CarbonLog 생성
-                        dummy_log = CarbonLog(
-                            student_id=self.current_user_id,
-                            log_date=current_date,
-                            total_emission=emission,
-                            points_earned=points,
-                            activities_json=json.dumps(dummy_activities, ensure_ascii=False),
-                            source="carbon_input",
-                            created_at=datetime.now()
-                        )
-                        session.add(dummy_log)
-                    
-                    # 사용자 포인트 업데이트 (한 번만)
-                    user.current_points += total_points
-                    session.add(user)
-                    self.current_user_points = user.current_points
-                    
-                    session.commit()
-                    logger.info(f"[더미 데이터] {self.current_user_id} 사용자를 위한 더미 데이터 생성 완료 (총 {total_points}점 추가)")
-                    logger.info(f"[더미 데이터] {self.current_user_id} 사용자를 위한 더미 데이터 생성 완료")
-                    
-                    # 생성된 데이터 다시 조회
-                    monthly_stmt = select(CarbonLog).where(
-                        CarbonLog.student_id == self.current_user_id,
-                        CarbonLog.log_date >= one_month_ago,
-                        CarbonLog.log_date <= today
-                    )
-                    monthly_logs = list(session.exec(monthly_stmt).all())
-                    
-                    # 이번주 로그도 다시 조회
-                    weekly_stmt = select(CarbonLog).where(
-                        CarbonLog.student_id == self.current_user_id,
-                        CarbonLog.log_date >= this_monday,
-                        CarbonLog.log_date <= today
-                    )
-                    weekly_logs = list(session.exec(weekly_stmt).all())
-                    
-                    # weekly_daily_dict 재계산
-                    weekly_daily_dict = {}
-                    for log in weekly_logs:
-                        day_key = log.log_date.strftime("%Y-%m-%d")
-                        if day_key not in weekly_daily_dict:
-                            weekly_daily_dict[day_key] = 0.0
-                        weekly_daily_dict[day_key] += log.total_emission
-                    
-                    # monthly_daily_dict 재계산
-                    monthly_daily_dict = {}
-                    for log in monthly_logs:
-                        day_key = log.log_date.strftime("%Y-%m-%d")
-                        if day_key not in monthly_daily_dict:
-                            monthly_daily_dict[day_key] = 0.0
-                        monthly_daily_dict[day_key] += log.total_emission
-                    
-                    # 한달 최대 배출량 재계산
-                    max_monthly_emission = max(monthly_daily_dict.values()) if monthly_daily_dict else 1.0
-                    
-                    # 이번주 최대 배출량 재계산
-                    max_weekly_emission = max(weekly_daily_dict.values()) if weekly_daily_dict else 1.0
-                    
-                    # 이번주 통계 재계산
-                    self.weekly_emission = round(sum(log.total_emission for log in weekly_logs), 2)
-                    self.monthly_emission = round(sum(log.total_emission for log in monthly_logs), 2)
+            # 더미 데이터 자동 생성 기능 제거 (회원가입 직후 포인트/배출량이 생성되는 문제 해결)
+            # 사용자가 직접 리포트를 저장할 때만 데이터가 생성되도록 변경
+            # 더미 데이터 생성 로직 전체 주석 처리
+            # if len(monthly_logs) == 0:
+            #     # 기존 더미 데이터 삭제
+            #     self.delete_dummy_data()
+            #     
+            #     import random
+            #     import json
+            #     with Session(engine) as session:
+            #         # 사용자 조회 (한 번만)
+            #         user = session.exec(
+            #             select(User).where(User.student_id == self.current_user_id)
+            #         ).first()
+            #         
+            #         if not user:
+            #             logger.error(f"[더미 데이터] 사용자를 찾을 수 없습니다: {self.current_user_id}")
+            #             return
+            #         
+            #         total_points = 0
+            #         # 최근 30일 동안의 더미 데이터 생성 (다양한 패턴으로)
+            #         base_emission = 10.0  # 기본 배출량
+            #         for i in range(30):
+            #             current_date = one_month_ago + timedelta(days=i)
+            #             if current_date > today:
+            #                 break
+            #             
+            #             # 주기적인 패턴 추가 (주간 패턴)
+            #             day_of_week = current_date.weekday()
+            #             weekday_factor = 1.0 if day_of_week < 5 else 0.7  # 주말은 30% 감소
+            #             
+            #             # 장기 트렌드 추가 (시간에 따른 변화)
+            #             trend_factor = 1.0 + (i / 30.0) * 0.3  # 점진적 증가
+            #             
+            #             # 랜덤 변동 추가 (일일 변동)
+            #             random_variation = random.uniform(0.7, 1.3)
+            #             
+            #             # 주기적인 피크 추가 (일부 날짜에 높은 값)
+            #             peak_factor = 1.0
+            #             if i % 7 == 3:  # 목요일마다 약간 높게
+            #                 peak_factor = 1.2
+            #             elif i % 10 == 0:  # 10일마다 한 번씩 매우 높게
+            #                 peak_factor = 1.5
+            #             elif i % 5 == 2:  # 5일마다 한 번씩 낮게
+            #                 peak_factor = 0.6
+            #             
+            #             # 최종 배출량 계산
+            #             emission = round(base_emission * weekday_factor * trend_factor * random_variation * peak_factor, 2)
+            #             # 범위 제한 (3~25kg)
+            #             emission = max(3.0, min(25.0, emission))
+            #             
+            #             # 더미 포인트 생성 (배출량에 비례하되 변동 추가)
+            #             points = random.randint(50, 200)
+            #             total_points += points
+            #             
+            #             # 더미 활동 데이터 생성
+            #             dummy_activities = [
+            #                 {"category": "교통", "activity_type": "자동차", "value": random.uniform(10, 50), "unit": "km"},
+            #                 {"category": "식품", "activity_type": "소고기", "value": random.uniform(100, 300), "unit": "g"},
+            #             ]
+            #             
+            #             # CarbonLog 생성
+            #             dummy_log = CarbonLog(
+            #                 student_id=self.current_user_id,
+            #                 log_date=current_date,
+            #                 total_emission=emission,
+            #                 points_earned=points,
+            #                 activities_json=json.dumps(dummy_activities, ensure_ascii=False),
+            #                 source="carbon_input",
+            #                 created_at=datetime.now()
+            #             )
+            #             session.add(dummy_log)
+            #         
+            #         # 사용자 포인트 업데이트 (한 번만)
+            #         user.current_points += total_points
+            #         session.add(user)
+            #         self.current_user_points = user.current_points
+            #         
+            #         session.commit()
+            #         logger.info(f"[더미 데이터] {self.current_user_id} 사용자를 위한 더미 데이터 생성 완료 (총 {total_points}점 추가)")
+            #         logger.info(f"[더미 데이터] {self.current_user_id} 사용자를 위한 더미 데이터 생성 완료")
+            #         
+            #         # 생성된 데이터 다시 조회
+            #         monthly_stmt = select(CarbonLog).where(
+            #             CarbonLog.student_id == self.current_user_id,
+            #             CarbonLog.log_date >= one_month_ago,
+            #             CarbonLog.log_date <= today
+            #         )
+            #         monthly_logs = list(session.exec(monthly_stmt).all())
+            #         
+            #         # 이번주 로그도 다시 조회
+            #         weekly_stmt = select(CarbonLog).where(
+            #             CarbonLog.student_id == self.current_user_id,
+            #             CarbonLog.log_date >= this_monday,
+            #             CarbonLog.log_date <= today
+            #         )
+            #         weekly_logs = list(session.exec(weekly_stmt).all())
+            #         
+            #         # weekly_daily_dict 재계산
+            #         weekly_daily_dict = {}
+            #         for log in weekly_logs:
+            #             day_key = log.log_date.strftime("%Y-%m-%d")
+            #             if day_key not in weekly_daily_dict:
+            #                 weekly_daily_dict[day_key] = 0.0
+            #             weekly_daily_dict[day_key] += log.total_emission
+            #         
+            #         # monthly_daily_dict 재계산
+            #         monthly_daily_dict = {}
+            #         for log in monthly_logs:
+            #             day_key = log.log_date.strftime("%Y-%m-%d")
+            #             if day_key not in monthly_daily_dict:
+            #                 monthly_daily_dict[day_key] = 0.0
+            #             monthly_daily_dict[day_key] += log.total_emission
+            #         
+            #         # 한달 최대 배출량 재계산
+            #         max_monthly_emission = max(monthly_daily_dict.values()) if monthly_daily_dict else 1.0
+            #         
+            #         # 이번주 최대 배출량 재계산
+            #         max_weekly_emission = max(weekly_daily_dict.values()) if weekly_daily_dict else 1.0
+            #         
+            #         # 이번주 통계 재계산
+            #         self.weekly_emission = round(sum(log.total_emission for log in weekly_logs), 2)
+            #         self.monthly_emission = round(sum(log.total_emission for log in monthly_logs), 2)
             
             # 한달 일별 데이터 생성 (날짜순으로 정렬)
             self.monthly_daily_data = []

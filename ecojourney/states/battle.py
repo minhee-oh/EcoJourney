@@ -516,14 +516,17 @@ class BattleState(CarbonState):
                 
                 result = []
                 for battle in battles:
-                    result.append({
-                        "college_a": battle.college_a,
-                        "college_b": battle.college_b,
-                        "score_a": battle.score_a,
-                        "score_b": battle.score_b,
-                        "winner": battle.winner,
-                        "start_date": battle.start_date.strftime("%Y-%m-%d") if battle.start_date else ""
-                    })
+                    result.append(
+                        {
+                            "college_a": battle.college_a,
+                            "college_b": battle.college_b,
+                            "score_a": battle.score_a,
+                            "score_b": battle.score_b,
+                            "winner": battle.winner,
+                            "start_date": battle.start_date.strftime("%Y-%m-%d") if battle.start_date else "",
+                            "end_date": battle.end_date.strftime("%Y-%m-%d") if getattr(battle, "end_date", None) else "",
+                        }
+                    )
                 
                 self.previous_battles = result
                 

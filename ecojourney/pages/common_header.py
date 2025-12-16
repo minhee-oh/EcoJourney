@@ -72,6 +72,17 @@ def header() -> rx.Component:
                         font_weight="500",
                         _hover={"border": "1px solid #FFFFFF"},
                     ),
+                    rx.button(
+                        "마이페이지",
+                        on_click=rx.redirect("/mypage"),
+                        background_color="transparent",
+                        color="#FFFFFF",
+                        border="none",
+                        border_radius="25px",
+                        padding="8px 20px",
+                        font_weight="500",
+                        _hover={"border": "1px solid #FFFFFF"},
+                    ),
                     # 닉네임 표시 (닉네임이 있으면 닉네임, 없으면 학번)
                     rx.cond(
                         AppState.current_user_nickname != "",
@@ -87,17 +98,6 @@ def header() -> rx.Component:
                             font_size="1em",
                             margin_right="10px",
                         ),
-                    ),
-                    rx.button(
-                        "마이페이지",
-                        on_click=rx.redirect("/mypage"),
-                        background_color="transparent",
-                        color="#FFFFFF",
-                        border="none",
-                        border_radius="25px",
-                        padding="8px 20px",
-                        font_weight="500",
-                        _hover={"border": "1px solid #FFFFFF"},
                     ),
                     rx.button(
                         "로그아웃",

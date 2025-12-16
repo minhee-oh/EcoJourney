@@ -250,13 +250,13 @@ def mypage_page() -> rx.Component:
                                                             log["date"],
                                                             color="#333333",
                                                             size="4",
-                                                            font_weight="bold",
+                                                            font_weight="normal",
                                                         ),
                                                         rx.text(
                                                             log.get("description", ""),
                                                             color="gray.600",
                                                             size="5",
-                                                            font_weight="bold",
+                                                            font_weight="normal",
                                                         ),
                                                         spacing="1",
                                                         align="start",
@@ -413,7 +413,7 @@ def mypage_page() -> rx.Component:
                                     rx.cond(
                                         AppState.weekly_daily_data.length() > 0,
                                         rx.vstack(
-                                            # 막대 그래프
+                                            # 막대 그래프 (카드 안에서 가로 기준 가운데 정렬)
                                             rx.hstack(
                                                 rx.foreach(
                                                     AppState.weekly_daily_data,
@@ -455,13 +455,15 @@ def mypage_page() -> rx.Component:
                                                     ),
                                                 ),
                                                 spacing="2",
-                                                justify="between",
+                                                justify="center",
                                                 align="end",
                                                 width="100%",
                                                 height="250px",
                                                 padding="10px",
                                             ),
                                             spacing="2",
+                                            align="center",
+                                            width="100%",
                                         ),
                                         rx.text("이번주 데이터가 없습니다.", color="gray.600", size="5", font_weight="bold"),
                                     ),
@@ -483,14 +485,14 @@ def mypage_page() -> rx.Component:
                                         "포인트 1000점당 비컴 마일리지 10점으로 환산됩니다.",
                                         color="gray.700",
                                         size="5",
-                                        font_weight="bold",
+                                        font_weight="normal",
                                         margin_bottom="15px",
                                     ),
                                     rx.text(
                                         "최소 1000점 이상부터 환산 신청이 가능합니다. (1000점 단위로만 입력 가능)",
                                         color="gray.600",
                                         size="4",
-                                        font_weight="bold",
+                                        font_weight="normal",
                                         margin_bottom="20px",
                                     ),
                                     rx.hstack(
@@ -588,7 +590,7 @@ def mypage_page() -> rx.Component:
                                             "아직 환산 내역이 없습니다.",
                                             color="gray.600",
                                             size="5",
-                                            font_weight="bold",
+                                            font_weight="normal",
                                         ),
                                     ),
                                     spacing="3",
@@ -605,23 +607,6 @@ def mypage_page() -> rx.Component:
                             width="100%",
                             align="stretch",
                             margin_bottom="30px",
-                        ),
-
-                        # 새로고침 버튼
-                        rx.card(
-                            rx.button(
-                                "🔄 대시보드 새로고침",
-                                on_click=AppState.load_mypage_data,
-                                color_scheme="blue",
-                                size="3",
-                                width="100%",
-                            ),
-                            width="100%",
-                            background="white",
-                            border="1px solid rgba(0,0,0,0.1)",
-                            box_shadow="0 4px 12px rgba(0,0,0,0.1)",
-                            padding="20px",
-                            border_radius="16px",
                         ),
 
                         spacing="6",

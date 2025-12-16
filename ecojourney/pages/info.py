@@ -144,7 +144,7 @@ def info_card(title: str, body: str, on_click) -> rx.Component:
     """단일 정보 카드 컴포넌트."""
     return rx.vstack(
         rx.heading(title, size="5", color="#333333", margin_bottom="8px"),
-        rx.text(body, size="5", color="gray.700", font_weight="bold", line_height="1.7", white_space="pre-wrap"),
+        rx.text(body, size="5", color="gray.700", font_weight="normal", line_height="1.7", white_space="pre-wrap"),
         rx.button(
             "읽었어요",
             on_click=on_click,
@@ -311,7 +311,7 @@ def quiz_card():
                 margin_bottom="20px",
             ),
 
-            # O/X 버튼
+            # O/X 버튼 (텍스트 오른쪽에 와도 어색하지 않도록 크기 축소)
             rx.hstack(
                 # O 버튼 (정답)
                 rx.button(
@@ -319,18 +319,18 @@ def quiz_card():
                     on_click=lambda: AppState.answer_quiz(True),
                     background_color="#4DAB75",
                     color="white",
-                    size="4",
-                    width="120px",
-                    height="120px",
-                    border_radius="12px",
+                    size="3",
+                    width="72px",
+                    height="72px",
+                    border_radius="999px",
                     font_weight="bold",
-                    font_size="2.5em",
-                    box_shadow="0 6px 16px rgba(0,0,0,0.25)",
-                    transition="all 0.3s ease",
+                    font_size="1.6em",
+                    box_shadow="0 4px 10px rgba(0,0,0,0.18)",
+                    transition="all 0.25s ease",
                     _hover={
                         "background_color": "#3d9463",
-                        "transform": "translateY(-8px)",
-                        "box_shadow": "0 12px 24px rgba(0,0,0,0.35)"
+                        "transform": "translateY(-3px)",
+                        "box_shadow": "0 8px 18px rgba(0,0,0,0.25)"
                     },
                     is_disabled=AppState.quiz_is_correct,
                 ),
@@ -341,23 +341,23 @@ def quiz_card():
                     on_click=lambda: AppState.answer_quiz(False),
                     background_color="#E74C3C",
                     color="white",
-                    size="4",
-                    width="120px",
-                    height="120px",
-                    border_radius="12px",
+                    size="3",
+                    width="72px",
+                    height="72px",
+                    border_radius="999px",
                     font_weight="bold",
-                    font_size="2.5em",
-                    box_shadow="0 6px 16px rgba(0,0,0,0.25)",
-                    transition="all 0.3s ease",
+                    font_size="1.6em",
+                    box_shadow="0 4px 10px rgba(0,0,0,0.18)",
+                    transition="all 0.25s ease",
                     _hover={
                         "background_color": "#c0392b",
-                        "transform": "translateY(-8px)",
-                        "box_shadow": "0 12px 24px rgba(0,0,0,0.35)"
+                        "transform": "translateY(-3px)",
+                        "box_shadow": "0 8px 18px rgba(0,0,0,0.25)"
                     },
                     is_disabled=AppState.quiz_is_correct,
                 ),
 
-                spacing="4",
+                spacing="3",
                 width="100%",
                 justify="center",
             ),
