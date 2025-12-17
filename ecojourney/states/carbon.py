@@ -172,11 +172,6 @@ class CarbonState(AuthState):
     
     async def handle_transport_submit(self, form_data: dict):
         """교통 입력값 폼 제출 -> 데이터 저장 -> 다음 페이지 이동"""
-        import sys
-        sys.stderr.write(f"[교통 제출] handle_transport_submit 호출됨\n")
-        sys.stderr.write(f"[교통 제출] form_data: {form_data}\n")
-        sys.stderr.flush()
-        
         # 기존 교통 데이터 제거
         self.all_activities = [
             act for act in self.all_activities 
@@ -226,11 +221,6 @@ class CarbonState(AuthState):
             })
         
         self.all_activities = self.all_activities + transport_data
-        import sys
-        sys.stderr.write(f"[교통 제출] transport_data 추가 완료, 총 all_activities 개수: {len(self.all_activities)}\n")
-        sys.stderr.write(f"[교통 제출] transport_data: {transport_data}\n")
-        sys.stderr.write(f"[교통 제출] 현재 all_activities: {self.all_activities}\n")
-        sys.stderr.flush()
         
         # 입력모드 종료 + 선택 초기화
         self.trans_input_mode = False
@@ -388,11 +378,6 @@ class CarbonState(AuthState):
 
     async def handle_food_submit(self, form_data: dict):
         """음식 입력값 제출 처리 (다중 선택 지원)"""
-        import sys
-        sys.stderr.write(f"[식품 제출] handle_food_submit 호출됨\n")
-        sys.stderr.write(f"[식품 제출] form_data: {form_data}\n")
-        sys.stderr.flush()
-        
         # 기존 음식 데이터 제거
         self.all_activities = [
             act for act in self.all_activities 
@@ -530,11 +515,6 @@ class CarbonState(AuthState):
                     })
 
         self.all_activities = self.all_activities + food_data
-        import sys
-        sys.stderr.write(f"[식품 제출] food_data 추가 완료, 총 all_activities 개수: {len(self.all_activities)}\n")
-        sys.stderr.write(f"[식품 제출] food_data: {food_data}\n")
-        sys.stderr.write(f"[식품 제출] 현재 all_activities: {self.all_activities}\n")
-        sys.stderr.flush()
 
         # 입력모드 종료 + 선택 초기화
         self.food_input_mode = False
@@ -608,11 +588,6 @@ class CarbonState(AuthState):
     
     async def handle_clothing_submit(self, form_data: dict):
         """의류 입력값 폼 제출 -> 데이터 저장 -> 다음 페이지 이동"""
-        import sys
-        sys.stderr.write(f"[의류 제출] handle_clothing_submit 호출됨\n")
-        sys.stderr.write(f"[의류 제출] form_data: {form_data}\n")
-        sys.stderr.flush()
-        
         # 기존 의류 데이터 제거
         self.all_activities = [
             act for act in self.all_activities 
@@ -654,11 +629,6 @@ class CarbonState(AuthState):
             })
         
         self.all_activities = self.all_activities + clothing_data
-        import sys
-        sys.stderr.write(f"[의류 제출] clothing_data 추가 완료, 총 all_activities 개수: {len(self.all_activities)}\n")
-        sys.stderr.write(f"[의류 제출] clothing_data: {clothing_data}\n")
-        sys.stderr.write(f"[의류 제출] 현재 all_activities: {self.all_activities}\n")
-        sys.stderr.flush()
         
         # 입력모드 종료 + 선택 초기화
         self.clothing_input_mode = False
@@ -697,11 +667,6 @@ class CarbonState(AuthState):
     
     async def handle_electricity_submit(self, form_data: dict):
         """전기 입력값 폼 제출 -> 데이터 저장 -> 다음 페이지 이동"""
-        import sys
-        sys.stderr.write(f"[전기 제출] handle_electricity_submit 호출됨\n")
-        sys.stderr.write(f"[전기 제출] form_data: {form_data}\n")
-        sys.stderr.flush()
-        
         # 기존 전기 데이터 제거
         self.all_activities = [
             act for act in self.all_activities 
@@ -725,11 +690,6 @@ class CarbonState(AuthState):
             })
         
         self.all_activities = self.all_activities + electricity_data
-        import sys
-        sys.stderr.write(f"[전기 제출] electricity_data 추가 완료, 총 all_activities 개수: {len(self.all_activities)}\n")
-        sys.stderr.write(f"[전기 제출] electricity_data: {electricity_data}\n")
-        sys.stderr.write(f"[전기 제출] 현재 all_activities: {self.all_activities}\n")
-        sys.stderr.flush()
         
         # 입력모드 종료 + 선택 초기화
         self.electricity_input_mode = False
@@ -759,19 +719,15 @@ class CarbonState(AuthState):
     
     def show_waste_input_fields(self):
         """선택된 항목들의 입력 필드를 표시"""
-        print(f"[쓰레기] show_waste_input_fields 호출됨")
-        print(f"[쓰레기] 선택된 항목: general={self.selected_general}, plastic={self.selected_plastic}, paper={self.selected_paper}, glass={self.selected_glass}, can={self.selected_can}")
         self.show_general = self.selected_general
         self.show_plastic = self.selected_plastic
         self.show_paper = self.selected_paper
         self.show_glass = self.selected_glass
         self.show_can = self.selected_can
         self.waste_input_mode = True
-        print(f"[쓰레기] waste_input_mode를 True로 설정함")
 
     def reset_waste_selection(self):
         """다시 선택하기: 모든 선택 초기화하고 카테고리 선택 단계로 돌아가기"""
-        print(f"[쓰레기] reset_waste_selection 호출됨")
         self.waste_input_mode = False
         self.selected_general = False
         self.selected_plastic = False
@@ -786,19 +742,13 @@ class CarbonState(AuthState):
     
     def handle_waste_submit_direct(self):
         """쓰레기 입력값 직접 제출 (form 제출 강제)"""
-        import sys
-        sys.stderr.write(f"[쓰레기 제출] handle_waste_submit_direct 호출됨\n")
-        sys.stderr.flush()
-        
         # JavaScript로 form 제출 강제
         return rx.call_script("""
             (function() {
                 const form = document.getElementById('waste-form');
                 if (!form) {
-                    console.error('waste-form을 찾을 수 없습니다');
                     return;
                 }
-                console.log('form 제출 강제 시도');
                 // form 제출 강제
                 const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
                 form.dispatchEvent(submitEvent);
@@ -807,12 +757,6 @@ class CarbonState(AuthState):
     
     async def handle_waste_submit_from_script(self, form_data: dict):
         """스크립트에서 수집한 form 데이터로 쓰레기 제출 처리"""
-        import sys
-        sys.stderr.write(f"[쓰레기 제출] handle_waste_submit_from_script 호출됨\n")
-        sys.stderr.write(f"[쓰레기 제출] form_data 타입: {type(form_data)}\n")
-        sys.stderr.write(f"[쓰레기 제출] form_data 내용: {form_data}\n")
-        sys.stderr.flush()
-        
         if not form_data:
             form_data = {}
         
@@ -865,11 +809,6 @@ class CarbonState(AuthState):
             })
         
         self.all_activities = self.all_activities + waste_data
-        import sys
-        sys.stderr.write(f"[쓰레기 제출] waste_data 추가 완료, 총 all_activities 개수: {len(self.all_activities)}\n")
-        sys.stderr.write(f"[쓰레기 제출] waste_data: {waste_data}\n")
-        sys.stderr.write(f"[쓰레기 제출] 현재 all_activities: {self.all_activities}\n")
-        sys.stderr.flush()
         
         # 입력모드 종료 + 선택 초기화
         self.waste_input_mode = False
@@ -886,22 +825,12 @@ class CarbonState(AuthState):
         
         # 리포트 계산 플래그 초기화 (리포트 페이지에서 다시 계산하도록)
         self.is_report_calculated = False
-        print(f"[쓰레기 제출] 리포트로 리다이렉트 시도...")
-        print(f"[쓰레기 제출] 최종 all_activities: {self.all_activities}")
         
         # 리포트로 이동 (리포트 페이지에서 on_report_page_load가 자동으로 계산 수행)
-        import sys
-        sys.stdout.flush()
         yield rx.redirect("/report")
     
     async def handle_waste_submit(self, form_data: dict):
         """쓰레기 입력값 폼 제출 -> 데이터 저장 -> 리포트로 이동"""
-        import sys
-        sys.stderr.write(f"[쓰레기 제출] handle_waste_submit 호출됨\n")
-        sys.stderr.write(f"[쓰레기 제출] form_data 타입: {type(form_data)}\n")
-        sys.stderr.write(f"[쓰레기 제출] form_data 내용: {form_data}\n")
-        sys.stderr.flush()
-        
         # 기존 쓰레기 데이터 제거
         self.all_activities = [
             act for act in self.all_activities 
@@ -951,11 +880,6 @@ class CarbonState(AuthState):
             })
         
         self.all_activities = self.all_activities + waste_data
-        import sys
-        sys.stderr.write(f"[쓰레기 제출] waste_data 추가 완료, 총 all_activities 개수: {len(self.all_activities)}\n")
-        sys.stderr.write(f"[쓰레기 제출] waste_data: {waste_data}\n")
-        sys.stderr.write(f"[쓰레기 제출] 현재 all_activities: {self.all_activities}\n")
-        sys.stderr.flush()
         
         # 입력모드 종료 + 선택 초기화
         self.waste_input_mode = False
@@ -972,12 +896,8 @@ class CarbonState(AuthState):
         
         # 리포트 계산 플래그 초기화 (리포트 페이지에서 다시 계산하도록)
         self.is_report_calculated = False
-        print(f"[쓰레기 제출] 리포트로 리다이렉트 시도...")
-        print(f"[쓰레기 제출] 최종 all_activities: {self.all_activities}")
         
         # 리포트로 이동 (리포트 페이지에서 on_report_page_load가 자동으로 계산 수행)
-        import sys
-        sys.stdout.flush()
         yield rx.redirect("/report")
     
     # ------------------------------ 물 관련 메서드 ------------------------------
@@ -1010,8 +930,6 @@ class CarbonState(AuthState):
     
     async def handle_water_submit(self, form_data: dict):
         """물 입력값 폼 제출 -> 데이터 저장 -> 리포트로 이동"""
-        print(f"[물 제출] handle_water_submit 호출됨, form_data: {form_data}")
-        
         # 기존 물 데이터 제거
         self.all_activities = [
             act for act in self.all_activities 
@@ -1045,11 +963,6 @@ class CarbonState(AuthState):
             })
         
         self.all_activities = self.all_activities + water_data
-        import sys
-        sys.stderr.write(f"[물 제출] water_data 추가 완료, 총 all_activities 개수: {len(self.all_activities)}\n")
-        sys.stderr.write(f"[물 제출] water_data: {water_data}\n")
-        sys.stderr.write(f"[물 제출] 현재 all_activities: {self.all_activities}\n")
-        sys.stderr.flush()
         
         # 입력모드 종료 + 선택 초기화
         self.water_input_mode = False
@@ -1062,7 +975,6 @@ class CarbonState(AuthState):
         
         # 리포트 계산 플래그 초기화 (리포트 페이지에서 다시 계산하도록)
         self.is_report_calculated = False
-        print(f"[물 제출] 쓰레기 페이지로 리다이렉트 시도...")
         
         # 쓰레기 페이지로 이동
         yield rx.redirect("/input/waste")
@@ -1071,7 +983,6 @@ class CarbonState(AuthState):
     
     async def calculate_report(self):
         """리포트 페이지에서 전체 탄소 배출량을 계산합니다."""
-        logger.info("[리포트 계산] 시작 - 전체 활동 데이터 계산 중...")
         # 새 리포트 계산을 시작할 때, 이전 저장 메시지/상태 초기화
         self.save_message = ""
         self.is_save_success = False
@@ -1082,11 +993,8 @@ class CarbonState(AuthState):
             total_emission = 0.0
             calculation_details = []  # 상세 계산 내역 저장
             
-            logger.info(f"[리포트 계산] 총 {len(self.all_activities)}개의 활동 데이터 처리 시작")
-            
             # 활동 데이터가 없으면 계산하지 않음
             if len(self.all_activities) == 0:
-                logger.warning("[리포트 계산] 활동 데이터가 없습니다. 계산을 건너뜁니다.")
                 self.total_carbon_emission = 0.0
                 self.is_report_calculated = True
                 self.calculation_details = []
@@ -1098,8 +1006,6 @@ class CarbonState(AuthState):
                 value = activity.get("value", 0)
                 unit = activity.get("unit", "")
                 sub_category = activity.get("sub_category") or activity.get("subcategory") or activity.get("is_vintage")
-                
-                logger.info(f"[리포트 계산] [{idx+1}/{len(self.all_activities)}] 처리 중 - 카테고리: {category}, 활동: {activity_type}, 값: {value}{unit}")
                 
                 # 탄소 배출량 계산
                 result = calculate_carbon_emission(
@@ -1128,16 +1034,11 @@ class CarbonState(AuthState):
                     detail["sub_category"] = sub_category
                 
                 calculation_details.append(detail)
-                
-                logger.info(f"[리포트 계산] ✅ [{idx+1}/{len(self.all_activities)}] 계산 완료: {category}/{activity_type} = {emission}kgCO2e (방법: {method})")
             
             # 결과 저장
             self.total_carbon_emission = round(total_emission, 3)
             self.is_report_calculated = True
             self.calculation_details = calculation_details  # 상세 내역 저장
-            
-            logger.info(f"[리포트 계산] ✅ 전체 계산 완료! 총 배출량: {self.total_carbon_emission}kgCO2e")
-            logger.info(f"[리포트 계산] 계산 상세 내역: {calculation_details}")
             
             # 절약량 계산 (자전거/걷기 사용 시)
             await self._calculate_savings()
@@ -1193,31 +1094,24 @@ class CarbonState(AuthState):
             self.next_level_threshold = emission - 20.0  # 20kg까지 감소 필요
             self.next_level_text = f"Level 2까지 {self.next_level_threshold:.2f}kg 더 줄여보세요!"
         
-        logger.info(f"[레벨 계산] 배출량: {emission}kg → 레벨: {self.carbon_level}, 다음 레벨까지: {self.next_level_threshold:.2f}kg 감소 필요")
+        # 디버그 로그 제거 (배포용)
+        pass
     
     # ------------------------------ DB 저장 메서드 ------------------------------
     
     async def _save_carbon_log_to_db_internal(self):
         """탄소 로그 저장 내부 로직 (헬퍼 메서드)"""
         # 가장 먼저 로그 출력 (메서드 호출 확인)
-        print(f"[저장] 메서드 호출됨! 사용자: {self.current_user_id}, 로그인: {self.is_logged_in}")
-        logger.info(f"[저장 시작] ========== 저장 프로세스 시작 ==========")
-        logger.info(f"[저장 시작] 사용자: {self.current_user_id}, 로그인 상태: {self.is_logged_in}")
         
         if not self.is_logged_in or not self.current_user_id:
             self.save_message = "로그인이 필요합니다."
             logger.error("[저장 실패] 로그인되지 않음")
-            print("[저장 실패] 로그인되지 않음")
             return
         
         self.is_saving = True
         self.save_message = ""
-        print(f"[저장] is_saving 설정 완료, all_activities 개수: {len(self.all_activities)}")
         
         try:
-            logger.info(f"[저장] all_activities 개수: {len(self.all_activities)}")
-            logger.info(f"[저장] all_activities 내용: {self.all_activities}")
-            print(f"[저장] all_activities: {self.all_activities}")
             import json
             from ..service.carbon_calculator import calculate_carbon_emission
             
@@ -1285,23 +1179,12 @@ class CarbonState(AuthState):
             today = date.today()
             
             # 절약량이 계산되지 않았으면 계산
-            print(f"[저장] 절약량 계산 전: hasattr={hasattr(self, 'total_saved_emission')}, 값={getattr(self, 'total_saved_emission', 'N/A')}")
             if not hasattr(self, 'total_saved_emission') or self.total_saved_emission == 0.0:
-                logger.info("[저장] 절약량 계산 시작...")
-                print("[저장] 절약량 계산 시작...")
                 await self._calculate_savings()
-                print(f"[저장] 절약량 계산 완료: {self.total_saved_emission}kg")
             
             # 리포트가 계산되지 않았으면 계산
-            print(f"[저장] 리포트 계산 전: is_report_calculated={self.is_report_calculated}")
             if not self.is_report_calculated:
-                logger.info("[저장] 리포트 계산 시작...")
-                print("[저장] 리포트 계산 시작...")
                 await self.calculate_report()
-                print(f"[저장] 리포트 계산 완료: total_emission={self.total_carbon_emission}kg")
-            
-            logger.info(f"[저장] 절약량: {self.total_saved_emission}kg, 절약 금액: {self.saved_money}원")
-            print(f"[저장] 절약량: {self.total_saved_emission}kg, 절약 금액: {self.saved_money}원")
             
             with Session(engine) as session:
                 # 과거 챌린지 로그(source가 잘못된 경우)를 정정하여 덮어쓰기 방지
@@ -1327,16 +1210,12 @@ class CarbonState(AuthState):
                 is_new_log = existing_log is None
                 # 오늘 날짜 탄소 입력 로그 존재 여부 상태 반영
                 self.has_today_log = not is_new_log
-            logger.info(f"[저장] 기존 탄소 로그 존재 여부: {not is_new_log}")
-            print(f"[저장] 기존 탄소 로그 존재 여부: {not is_new_log}, is_new_log={is_new_log}")
+            # is_new_log는 아래 DB 업데이트 로직에서 사용
             
             # 테스트용: 같은 날에 여러 번 저장 가능 (제한 제거)
             
-            print(f"[저장] DB 저장 시작 - total_emission={total_emission}kg")
-            
             # 포인트 계산 (한 번만 계산)
             points_earned = await self._calculate_points(total_emission)
-            logger.info(f"[저장] 계산된 포인트: {points_earned}점")
             
             with Session(engine) as session:
                 # 사용자 조회
@@ -1359,11 +1238,9 @@ class CarbonState(AuthState):
                 
                 # 기존 포인트 저장 (로그 업데이트 전)
                 old_points = log.points_earned if log and log.points_earned else 0
-                logger.info(f"[저장] 기존 포인트: {old_points}점, 새 포인트: {points_earned}점")
                 
                 # 로그 생성 또는 업데이트
                 if log:
-                    logger.info(f"[저장] 기존 로그 업데이트 (기존 포인트: {log.points_earned})")
                     log.transport_km = transport_km
                     log.ac_hours = ac_hours
                     log.cup_count = cup_count
@@ -1384,7 +1261,6 @@ class CarbonState(AuthState):
                         source="carbon_input",
                         created_at=datetime.now()
                     )
-                    logger.info("[저장] 새 로그 생성")
                 
                 session.add(log)
                 
@@ -1392,11 +1268,9 @@ class CarbonState(AuthState):
                 if is_new_log:
                     # 새로운 로그: 포인트 추가
                     user.current_points += points_earned
-                    logger.info(f"[저장] 새 로그 - 포인트 추가: {user.current_points - points_earned} + {points_earned} = {user.current_points}")
                 else:
                     # 기존 로그 업데이트: 기존 포인트를 빼고 새 포인트 추가
                     user.current_points = user.current_points - old_points + points_earned
-                    logger.info(f"[저장] 기존 로그 업데이트 - 포인트 조정: {user.current_points + old_points - points_earned} - {old_points} + {points_earned} = {user.current_points}")
                 
                 self.current_user_points = user.current_points
                 session.add(user)
@@ -1435,9 +1309,6 @@ class CarbonState(AuthState):
                 session.refresh(log)
                 session.refresh(user)
                 
-                logger.info(f"[저장 완료] 사용자: {self.current_user_id}, 배출량: {total_emission}kg, 절약량: {self.total_saved_emission}kg, 포인트: {points_earned}점 (총 포인트: {user.current_points})")
-                logger.info(f"[저장 완료] DB 확인 - 사용자 포인트: {user.current_points}점, 로그 포인트: {log.points_earned}점")
-                
                 if points_earned > 0:
                     # 포인트 획득 이유 메시지 생성 (위에서 생성한 description 재사용)
                     self.save_message = f"✅ 저장 완료! {description}으로 {points_earned}점을 획득했습니다."
@@ -1463,20 +1334,17 @@ class CarbonState(AuthState):
                         user = session.exec(user_stmt).first()
                         if user:
                             self.current_user_points = user.current_points
-                            logger.info(f"[저장] 사용자 포인트 새로고침: {self.current_user_points}점")
                     
                     # ChallengeState의 load_mypage_data 호출하여 포인트 로그 등 새로고침
                     # AppState는 ChallengeState이므로 self를 통해 호출 가능
                     if hasattr(self, 'load_mypage_data'):
                         await self.load_mypage_data()
-                        logger.info("[저장] 마이페이지 데이터 새로고침 완료")
                     else:
                         # load_mypage_data가 없으면 포인트 로그만 직접 로드
                         if hasattr(self, 'load_points_log'):
                             await self.load_points_log()
-                            logger.info("[저장] 포인트 로그 새로고침 완료")
                 except Exception as refresh_error:
-                    logger.warning(f"[저장] 마이페이지 데이터 새로고침 실패 (무시): {refresh_error}")
+                    pass
             
         except Exception as e:
             self.save_message = f"❌ 저장 중 오류가 발생했습니다: {str(e)}"
@@ -1484,9 +1352,7 @@ class CarbonState(AuthState):
             self.is_saving = False
             logger.error(f"[저장 오류] 탄소 로그 저장 실패: {e}", exc_info=True)
             logger.error(f"[저장 오류] 사용자: {self.current_user_id}, 활동 수: {len(self.all_activities)}")
-            print(f"[저장 오류] 예외 발생: {e}")
             import traceback
-            print(f"[저장 오류] 스택 트레이스:\n{traceback.format_exc()}")
     
     async def save_carbon_log_to_db(self):
         """현재 입력된 탄소 배출량을 데이터베이스에 저장"""
@@ -1517,11 +1383,11 @@ class CarbonState(AuthState):
                     self.all_activities = activities
                     # 저장된 데이터가 있으면 자동으로 계산 수행
                     await self.calculate_report()
-                    logger.info(f"저장된 데이터 불러오기 완료: {self.current_user_id}, 날짜: {target_date}, 활동 수: {len(activities)}")
+                    pass
                 else:
-                    logger.info(f"저장된 데이터가 없습니다: {self.current_user_id}, 날짜: {target_date}")
+                    pass
             else:
-                logger.info(f"저장된 로그가 없습니다: {self.current_user_id}, 날짜: {target_date}")
+                pass
                 
         except Exception as e:
             logger.error(f"저장된 데이터 불러오기 오류: {e}", exc_info=True)
@@ -1609,7 +1475,8 @@ class CarbonState(AuthState):
                 for activity in activities:
                     # activity가 딕셔너리인지 확인
                     if not isinstance(activity, dict):
-                        logger.warning(f"활동 데이터가 딕셔너리가 아닙니다: {type(activity)}, 값: {activity}")
+                        # 디버그 로그 제거 (배포용)
+                        pass
                         continue
                     
                     category = activity.get("category", "기타")
@@ -1677,7 +1544,8 @@ class CarbonState(AuthState):
             # 탄소 가격 (원/kgCO2)
             CARBON_PRICE_PER_KG = 100.0  # 1kg CO2 = 100원
             
-            logger.info(f"[절약량 계산] 시작 - 활동 수: {len(self.all_activities)}")
+            # 디버그 로그 제거 (배포용)
+            pass
             
             # 교통 활동 중 자전거/걷기 사용한 경우 찾기
             for activity in self.all_activities:
@@ -1694,7 +1562,8 @@ class CarbonState(AuthState):
                 value = activity.get("value", 0)
                 unit = activity.get("unit", "km")
                 
-                logger.info(f"[절약량 계산] {activity_type} 발견 - 값: {value}{unit}")
+                # 디버그 로그 제거 (배포용)
+                pass
                 
                 # 거리로 변환
                 distance_km, _ = convert_to_standard_unit(
@@ -1706,7 +1575,8 @@ class CarbonState(AuthState):
                 )
                 
                 if distance_km <= 0:
-                    logger.warning(f"[절약량 계산] {activity_type} 거리가 0 이하: {distance_km}km")
+                    # 디버그 로그 제거 (배포용)
+                    pass
                     continue
                 
                 # 같은 거리를 버스로 갔을 때의 배출량 계산
@@ -1725,13 +1595,15 @@ class CarbonState(AuthState):
                     "alternative": "버스"
                 })
                 
-                logger.info(f"[절약량 계산] {activity_type} {distance_km}km → 절약: {saved_emission}kgCO2e ({saved_money}원)")
+                # 디버그 로그 제거 (배포용)
+                pass
             
             self.total_saved_emission = round(total_saved, 3)
             self.saved_money = round(total_saved * CARBON_PRICE_PER_KG, 2)
             self.savings_details = savings_list
             
-            logger.info(f"[절약량 계산] ✅ 총 절약량: {self.total_saved_emission}kgCO2e, 절약 금액: {self.saved_money}원, 상세: {len(savings_list)}개")
+            # 디버그 로그 제거 (배포용)
+            pass
             
         except Exception as e:
             logger.error(f"[절약량 계산] 오류: {e}", exc_info=True)
@@ -1780,7 +1652,8 @@ class CarbonState(AuthState):
             self.points_breakdown = points_breakdown
             self.total_points_earned = total_points
             
-            logger.info(f"[리포트 포인트 계산] 총 포인트: {total_points}점 (절약량: {savings_points}점, 빈티지: {vintage_points}점, 평균 대비: {points_breakdown['평균 대비']}점)")
+            # 디버그 로그 제거 (배포용)
+            pass
             
         except Exception as e:
             logger.error(f"[리포트 포인트 계산] 오류: {e}", exc_info=True)
@@ -1806,24 +1679,29 @@ class CarbonState(AuthState):
             # 절약한 금액(원) = 포인트
             savings_points = int(self.saved_money) if hasattr(self, 'saved_money') else 0
             total_points += savings_points
-            logger.info(f"[포인트 계산] 절약량 포인트: {savings_points}점 (절약량: {self.total_saved_emission}kg)")
+            # 디버그 로그 제거 (배포용)
+            pass
             
             # 2. 빈티지 제품 사용 포인트
             vintage_count = 0
-            logger.info(f"[포인트 계산] all_activities 개수: {len(self.all_activities)}")
+            # 디버그 로그 제거 (배포용)
+            pass
             for activity in self.all_activities:
                 category = activity.get("category")
                 sub_category = activity.get("sub_category") or activity.get("subcategory") or activity.get("sub")
                 value = activity.get("value", 0)
-                logger.info(f"[포인트 계산] 활동 확인: category={category}, sub_category={sub_category}, value={value}")
+                # 디버그 로그 제거 (배포용)
+                pass
                 if category == "의류" and sub_category == "빈티지":
                     vintage_count += int(value)
-                    logger.info(f"[포인트 계산] 빈티지 제품 발견! {activity.get('activity_type')} {value}개")
+                    # 디버그 로그 제거 (배포용)
+                    pass
             
             # 빈티지 제품 1개당 10점
             vintage_points = vintage_count * 10
             total_points += vintage_points
-            logger.info(f"[포인트 계산] 빈티지 제품 포인트: {vintage_points}점 (빈티지 제품: {vintage_count}개)")
+            # 디버그 로그 제거 (배포용)
+            pass
             
             # 3. 평균보다 낮은 배출량 포인트
             avg_emission = get_total_average()  # 14.5 kgCO₂e/일
@@ -1832,11 +1710,14 @@ class CarbonState(AuthState):
                 diff = avg_emission - total_emission
                 emission_points = min(int(diff * 20), 100)
                 total_points += emission_points
-                logger.info(f"[포인트 계산] 평균 대비 낮은 배출량 포인트: {emission_points}점 (차이: {diff:.2f}kg)")
+                # 디버그 로그 제거 (배포용)
+                pass
             else:
-                logger.info(f"[포인트 계산] 평균보다 높은 배출량 (평균: {avg_emission}kg, 내 배출량: {total_emission}kg)")
+                # 디버그 로그 제거 (배포용)
+                pass
             
-            logger.info(f"[포인트 계산] 총 포인트: {total_points}점 (절약량: {savings_points}점, 빈티지: {vintage_points}점, 배출량: {total_points - savings_points - vintage_points}점)")
+            # 디버그 로그 제거 (배포용)
+            pass
             return total_points
             
         except Exception as e:
@@ -1940,7 +1821,8 @@ class CarbonState(AuthState):
             # 도넛 차트 SVG 생성
             self._generate_donut_chart_svg()
             
-            logger.info(f"카테고리별 배출량 집계 완료: {category_emission}")
+            # 디버그 로그 제거 (배포용)
+            pass
             
         except Exception as e:
             logger.error(f"카테고리별 배출량 집계 오류: {e}", exc_info=True)
@@ -1985,7 +1867,8 @@ class CarbonState(AuthState):
             svg_parts.append('</svg>')
             
             self.donut_chart_svg = ''.join(svg_parts)
-            logger.info("도넛 차트 SVG 생성 완료")
+            # 디버그 로그 제거 (배포용)
+            pass
             
         except Exception as e:
             logger.error(f"도넛 차트 SVG 생성 오류: {e}", exc_info=True)
@@ -2034,11 +1917,6 @@ class CarbonState(AuthState):
             total_carbon = float(self.total_carbon_emission or 0.0)
             # 합계와 차이가 크면 합계 기준으로 보정
             if abs(breakdown_sum - total_carbon) > 1e-6:
-                logger.info(
-                    "AI 요청용 총배출량 보정: breakdown_sum=%.4f, total=%.4f",
-                    breakdown_sum,
-                    total_carbon,
-                )
                 total_carbon = breakdown_sum
             
             payload = {
@@ -2099,7 +1977,8 @@ class CarbonState(AuthState):
             
             self.ai_alternatives = alternatives
             
-            logger.info(f"AI 분석 결과 생성 완료 - 분석: {len(self.ai_analysis_result)}자, 제안: {len(self.ai_suggestions)}개, 정책: {len(self.ai_alternatives)}개")
+            # 디버그 로그 제거 (배포용)
+            pass
             
         except Exception as e:
             logger.error(f"AI 분석 결과 생성 오류: {e}", exc_info=True)

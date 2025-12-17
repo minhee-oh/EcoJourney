@@ -1,7 +1,12 @@
 # 파일 경로: ecojourney/coaching_api.py
+import logging
 from fastapi import APIRouter, HTTPException
 from ecojourney.ai.models import UserActivityRawInput
 from ecojourney.ai.llm_service import get_coaching_feedback
+
+logger = logging.getLogger(__name__)
+# 배포 환경에서 불필요한 콘솔 출력 방지(에러만 기록)
+logger.setLevel(logging.ERROR)
 
 router = APIRouter(
     prefix="/api/v1",
@@ -25,11 +30,6 @@ async def generate_feedback_endpoint(user_data: UserActivityRawInput):
             except Exception:
                 payload["total_carbon_kg"] = 0.0
 
-        # 디버그 로그
-        print("\n====== [DEBUG] /generate-feedback payload ======")
-        print(payload)
-        print("===============================================\n")
-
         # LLM 호출
         feedback_json_string = get_coaching_feedback(payload)
 
@@ -39,7 +39,7 @@ async def generate_feedback_endpoint(user_data: UserActivityRawInput):
         }
 
     except Exception as e:
-        print(f"[AI ERROR] Error during feedback generation: {e}")
+        logger.error(f"[AI] Error during feedback generation: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail="Internal server error: Could not generate AI feedback.",

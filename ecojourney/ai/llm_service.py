@@ -1,13 +1,8 @@
-# 파일 경로: ecojourney/ai/llm_service.py
-
 import json
-import logging
 import os
 from typing import Dict, Any
 
 from dotenv import load_dotenv
-
-logger = logging.getLogger(__name__)
 
 # -------------------------------
 # 1) .env 파일에서 API 키 로드
@@ -22,12 +17,6 @@ FALLBACK_MODELS = [
     "gemini-1.5-flash-latest",  # 2차 대체 모델
 ]
 
-# 키 존재 여부만 로깅 (민감정보 미노출)
-if not GEMINI_API_KEY:
-    logger.error("[llm_service] ❌ GEMINI_API_KEY 환경변수가 없습니다. .env 파일을 확인하세요.")
-else:
-    logger.info("[llm_service] 🔑 Gemini API Key 로드 확인")
-
 # -------------------------------
 # 2) Gemini SDK 로딩
 # -------------------------------
@@ -35,7 +24,6 @@ try:
     import google.generativeai as genai
 except ImportError:
     genai = None
-    logger.error("[llm_service] google-generativeai 패키지가 없습니다. pip install 필요.")
 
 # -------------------------------
 # 3) Gemini 초기화
@@ -43,11 +31,11 @@ except ImportError:
 if genai and GEMINI_API_KEY:
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        logger.info("[llm_service] Gemini API 설정 완료")
     except Exception as e:
-        logger.error(f"[llm_service] Gemini 초기화 실패: {e}")
+        # 초기화 실패 시에는 폴백을 사용하도록 비활성화
+        genai = None
 else:
-    logger.warning("[llm_service] Gemini 사용 불가 → 시뮬레이션 응답 사용")
+    genai = None
 
 
 # ======================================================================
@@ -243,36 +231,28 @@ def call_llm_api(prompt: str, user_data: Dict[str, Any]) -> str:
 
             # JSON 파싱
             parsed = json.loads(raw_text)
-            if model_name == PRIMARY_MODEL:
-                logger.info(f"[llm_service] ✅ {model_name} 성공")
-            else:
-                logger.info(f"[llm_service] ✅ {model_name} 성공 (대체 모델)")
             return json.dumps(parsed, ensure_ascii=False, indent=4)
 
         except Exception as e:
             error_str = str(e)
-            logger.error(f"[llm_service] {model_name} 호출 실패: {error_str}")
-            
             # 429 에러(할당량 초과) 또는 quota 관련 에러인 경우 다음 모델로 전환
             if "429" in error_str or "quota" in error_str.lower() or "Quota exceeded" in error_str:
-                logger.warning(f"[llm_service] {model_name} 할당량 초과 → 다음 모델 시도")
+                pass
             # 모델을 찾을 수 없는 경우 (404 에러 포함)
             elif "not found" in error_str.lower() or "invalid" in error_str.lower() or "does not exist" in error_str.lower() or "not available" in error_str.lower() or "404" in error_str:
-                logger.warning(f"[llm_service] {model_name} 모델을 찾을 수 없음 → 다음 모델 시도")
+                pass
             # API 키 관련 에러
             elif "api key" in error_str.lower() or "authentication" in error_str.lower() or "unauthorized" in error_str.lower() or "403" in error_str:
-                logger.error(f"[llm_service] API 키 인증 실패: {model_name} - .env 파일의 GEMINI_API_KEY를 확인하세요")
                 # API 키 문제는 모든 모델에서 동일하므로 즉시 폴백
                 break
             else:
-                logger.warning(f"[llm_service] {model_name} 실패 → 다음 모델 시도: {e}")
+                pass
             
             # 마지막 모델이 아니면 계속 시도
             if model_name != models_to_try[-1]:
                 continue
     
     # 모든 Gemini 모델 실패 시 폴백
-    logger.warning("[llm_service] 모든 Gemini 모델 실패 → 폴백 사용")
     simulated = _build_simulated_response(user_data)
     return json.dumps(simulated, ensure_ascii=False, indent=4)
 

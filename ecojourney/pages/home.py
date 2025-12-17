@@ -2,6 +2,7 @@
 
 import reflex as rx
 from ..states import AppState
+from .common_header import footer_bar
 
 def home_header() -> rx.Component:
     """홈페이지 전용 헤더 (투명 배경)"""
@@ -134,6 +135,7 @@ def home_page() -> rx.Component:
     """홈 페이지 컴포넌트"""
     return rx.box(
         home_header(),
+        footer_bar(),
 
         # 스크롤 스냅 컨테이너
         rx.box(

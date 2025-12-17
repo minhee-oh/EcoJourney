@@ -139,3 +139,54 @@ def header() -> rx.Component:
     )
 
 
+def footer_bar() -> rx.Component:
+    return rx.box(
+        rx.hstack(
+            rx.hstack(
+                rx.text("Powered by ", color="gray.700", font_size="0.85em"),
+                rx.link(
+                    "Google AI",
+                    href="https://ai.google.dev",
+                    is_external=True,
+                    color="#4DAB75",
+                    font_size="0.85em",
+                    font_weight="600",
+                    _hover={"text_decoration": "underline"},
+                ),
+                spacing="1",
+                align="center",
+                wrap="wrap",
+            ),
+            rx.text("·", color="gray.500", font_size="0.85em"),
+            rx.hstack(
+                rx.text("Carbon data provided by ", color="gray.700", font_size="0.85em"),
+                rx.link(
+                    "Climatiq",
+                    href="https://www.climatiq.io",
+                    is_external=True,
+                    color="#4DAB75",
+                    font_size="0.85em",
+                    font_weight="600",
+                    _hover={"text_decoration": "underline"},
+                ),
+                spacing="1",
+                align="center",
+                wrap="wrap",
+            ),
+            rx.spacer(),
+            rx.text("© 2025 EcoJourney", color="gray.600", font_size="0.85em"),
+            width="100%",
+            align="center",
+            padding="6px 16px",
+        ),
+        width="100%",
+        position="fixed",
+        bottom="0",
+        left="0",
+        z_index="900",
+        background_color="rgba(255, 255, 255, 0.85)",
+        backdrop_filter="blur(10px)",
+        border_top="1px solid rgba(0, 0, 0, 0.06)",
+    )
+
+

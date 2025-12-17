@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+# 배포 환경에서 리포트 작성 시 API/계산 과정 로그가 콘솔에 과도하게 출력되지 않도록 에러만 남깁니다.
+logger.setLevel(logging.ERROR)
 
 # API 키 (환경 변수에서 로드)
 CLIMATIQ_API_KEY = os.getenv("CLIMATIQ_API_KEY", "")
@@ -46,10 +48,6 @@ def _call_climatiq(activity_id: str, region: str, parameters: Dict[str, Any], da
         탄소 배출량 (kgCO2e) 또는 None (실패 시)
     """
     if not CLIMATIQ_API_KEY:
-        import sys
-        sys.stderr.write(f"[API] ❌ CLIMATIQ_API_KEY가 설정되지 않았습니다. (activity_id: {activity_id}, region: {region})\n")
-        sys.stderr.flush()
-        logger.warning(f"[API] CLIMATIQ_API_KEY가 설정되지 않았습니다.")
         return None
     
     emission_factor = {
@@ -68,14 +66,8 @@ def _call_climatiq(activity_id: str, region: str, parameters: Dict[str, Any], da
     }
     
     try:
-        import sys
-        sys.stderr.write(f"[API] 🌐 Climatiq API 호출 시도 - URL: {BASE_URL}, activity_id: {activity_id}, region: {region}\n")
-        sys.stderr.flush()
         # 1차 시도: 요청된 Region (예: KR)
         response = requests.post(BASE_URL, json=payload, headers=get_headers(), timeout=10)
-        sys.stderr.write(f"[API] 📡 API 응답 - 상태 코드: {response.status_code}, region: {region}\n")
-        sys.stderr.flush()
-        logger.debug(f"[API] {region} 지역 시도 - 상태 코드: {response.status_code}")
         
         # 400(Bad Request) 중 'no_emission_factors_found' 에러이거나 404인 경우
         if response.status_code in [400, 404]:
@@ -83,12 +75,9 @@ def _call_climatiq(activity_id: str, region: str, parameters: Dict[str, Any], da
                 error_data = response.json()
                 error_code = error_data.get("error_code", "")
                 if error_code == "no_emission_factors_found" or response.status_code == 404:
-                    logger.warning(f"[API 경고] {region} 지역 데이터 없음. Global로 재시도합니다. (ID: {activity_id})")
-                    
                     # 2차 시도: Region을 'Global'로 변경
                     payload["emission_factor"]["region"] = "Global"
                     response = requests.post(BASE_URL, json=payload, headers=get_headers(), timeout=10)
-                    logger.debug(f"[API] Global 재시도 - 상태 코드: {response.status_code}")
             except:
                 pass
         
@@ -104,24 +93,13 @@ def _call_climatiq(activity_id: str, region: str, parameters: Dict[str, Any], da
             co2e = co2e_value * 1000
         else:
             co2e = co2e_value
-        
-        import sys
-        final_region = payload['emission_factor']['region']
-        sys.stderr.write(f"[API] ✅ Climatiq API 계산 성공: {co2e}kgCO2e (지역: {final_region}, activity_id: {activity_id})\n")
-        sys.stderr.flush()
-        logger.info(f"[API] ✅ 계산 성공: {co2e}kgCO2e (지역: {final_region})")
         return co2e
         
     except requests.exceptions.RequestException as e:
-        import sys
-        sys.stderr.write(f"[API] ❌ Climatiq API 호출 실패: {activity_id} - {str(e)}\n")
-        sys.stderr.flush()
         logger.error(f"[API 오류] {activity_id} 호출 실패: {e}")
         if hasattr(e, 'response') and e.response is not None:
             try:
                 error_data = e.response.json()
-                sys.stderr.write(f"[API] ❌ API 오류 상세: {error_data}\n")
-                sys.stderr.flush()
                 logger.error(f"[API] 상세 응답: {error_data}")
             except:
                 logger.error(f"[API] 상세 응답 (텍스트): {e.response.text}")

@@ -2,7 +2,7 @@
 
 import reflex as rx
 from ..states import AppState
-from .common_header import header
+from .common_header import header, footer_bar
 
 
 def report_page() -> rx.Component:
@@ -14,6 +14,7 @@ def report_page() -> rx.Component:
             # 리포트 생성 완료 시: 리포트 표시
             rx.box(
                 header(),
+                footer_bar(),
                 # 헤더 공간 확보
                 rx.box(height="100px"),
                 # fade-in 애니메이션을 위한 CSS 삽입
@@ -619,6 +620,7 @@ def report_page() -> rx.Component:
             # 리포트 생성 중: 로딩 표시
             rx.box(
                 header(),
+                footer_bar(),
                 rx.center(
                     rx.vstack(
                         rx.text(
@@ -655,6 +657,7 @@ def report_page() -> rx.Component:
         # 로그인 안 된 경우
         rx.box(
             header(),
+            footer_bar(),
             rx.center(
                 rx.vstack(
                     rx.text("로그인이 필요합니다.", size="4", color="red.600", font_weight="bold"),

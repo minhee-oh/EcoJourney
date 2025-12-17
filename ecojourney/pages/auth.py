@@ -2,6 +2,7 @@
 
 import reflex as rx
 from ..states import AppState
+from .common_header import footer_bar
 
 def auth_header() -> rx.Component:
     """인증 페이지 전용 헤더"""
@@ -50,6 +51,7 @@ def auth_page() -> rx.Component:
     """로그인 및 회원가입 페이지"""
     return rx.box(
         auth_header(),
+        footer_bar(),
        
         # Google Fonts 및 스타일링
         rx.html("""

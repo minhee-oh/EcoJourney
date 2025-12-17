@@ -2,7 +2,7 @@
 
 import reflex as rx
 from ..states import AppState
-from .common_header import header
+from .common_header import header, footer_bar
 
 # --------------------------
 # 아티클 데이터
@@ -374,6 +374,7 @@ def info_page() -> rx.Component:
         AppState.is_logged_in,
         rx.box(
             header(),
+            footer_bar(),
             # 헤더 공간 확보
             rx.box(height="100px"),
             # fade-in 애니메이션을 위한 CSS 삽입

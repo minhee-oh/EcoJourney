@@ -205,11 +205,7 @@ class ChallengeState(MileageState):
     
     async def update_challenge_progress(self, challenge_id: int, increment: int = 1):
         """챌린지 진행도 업데이트 (일일/주간 리셋 포함)"""
-        print(f"[챌린지 진행도] update_challenge_progress 호출됨, challenge_id: {challenge_id}, increment: {increment}")
-        logger.info(f"[챌린지 진행도] update_challenge_progress 호출됨, challenge_id: {challenge_id}, increment: {increment}")
-        
         if not self.is_logged_in:
-            print("[챌린지 진행도] 로그인되지 않음, 종료")
             return
         
         try:
@@ -222,7 +218,6 @@ class ChallengeState(MileageState):
 
             today = date.today()
             this_monday = today - timedelta(days=today.weekday())
-            print(f"[챌린지 진행도] 오늘: {today}, 이번 주 월요일: {this_monday}")
 
             with Session(engine) as session:
                 # 챌린지 조회
@@ -230,10 +225,7 @@ class ChallengeState(MileageState):
                     select(Challenge).where(Challenge.id == challenge_id)
                 ).first()
                 if not challenge:
-                    print(f"[챌린지 진행도] 챌린지 ID {challenge_id}를 찾을 수 없음")
                     return
-                
-                print(f"[챌린지 진행도] 챌린지 찾음: {challenge.title} (타입: {challenge.type})")
 
                 # 진행도 조회 또는 생성
                 progress = session.exec(
@@ -269,20 +261,14 @@ class ChallengeState(MileageState):
 
                 # 주간 챌린지는 주가 바뀌면 리셋
                 if challenge.type == "WEEKLY_STREAK":
-                    print(f"[주간 챌린지] 진행도 체크 - last_updated_date: {last_updated_date}, this_monday: {this_monday}, today: {today}, is_new_progress: {is_new_progress}")
                     if last_updated_date < this_monday:
-                        print(f"[주간 챌린지] 주가 바뀜, 진행도 리셋 (기존: {progress.current_value})")
                         progress.current_value = 0
                         progress.is_completed = False
                         progress.completed_at = None
                     # 같은 날 이미 기록했으면 진행도 증가하지 않음 (하루에 한 번만 카운트)
                     # 단, 새로 생성된 진행도는 제외 (is_new_progress가 True이면 진행도 증가)
                     elif not is_new_progress and last_updated_date == today:
-                        print(f"[주간 챌린지] 오늘 이미 기록됨 (진행도: {progress.current_value}), 업데이트 건너뜀")
-                        logger.info(f"주간 챌린지: 오늘 이미 기록됨 (진행도: {progress.current_value})")
                         return
-                    else:
-                        print(f"[주간 챌린지] 진행도 업데이트 가능 (last_updated_date: {last_updated_date}, today: {today})")
 
                 # 이미 완료된 챌린지는 업데이트하지 않음
                 if progress.is_completed:
@@ -292,8 +278,6 @@ class ChallengeState(MileageState):
                 old_value = progress.current_value
                 progress.current_value += increment
                 progress.last_updated = datetime.now()
-                print(f"[챌린지 진행도] 진행도 업데이트: {old_value} -> {progress.current_value} (목표: {challenge.goal_value})")
-                logger.info(f"챌린지 진행도 업데이트: {challenge.title}, 진행도: {progress.current_value}/{challenge.goal_value}")
 
                 # 챌린지 목표 달성 확인
                 if progress.current_value >= challenge.goal_value:
@@ -325,8 +309,6 @@ class ChallengeState(MileageState):
                         session.add(log_entry)
                     except Exception as log_error:
                         logger.error(f"챌린지 포인트 로그 생성 오류: {log_error}", exc_info=True)
-                    
-                    logger.info(f"챌린지 완료: {self.current_user_id}, 챌린지: {challenge.title}, 보상: {challenge.reward_points}")
 
                 # 진행도 저장 (세션 커밋)
                 session.add(progress)
@@ -334,7 +316,7 @@ class ChallengeState(MileageState):
                 session.refresh(progress)
 
         except Exception as e:
-            logger.error(f"챌린지 진행도 업데이트 오류: {e}")
+            logger.error(f"챌린지 진행도 업데이트 오류: {e}", exc_info=True)
     
     def load_user_challenge_progress(self):
         """사용자의 챌린지 진행도 로드"""
@@ -536,37 +518,21 @@ class ChallengeState(MileageState):
 
     async def mark_daily_record(self):
         """주간 챌린지 - 7일 연속 기록 진행도 업데이트"""
-        print(f"[주간 챌린지] mark_daily_record 호출됨, 로그인: {self.is_logged_in}, 사용자: {self.current_user_id}")
-        logger.info(f"[주간 챌린지] mark_daily_record 호출됨, 로그인: {self.is_logged_in}, 사용자: {self.current_user_id}")
-        
         if not self.is_logged_in:
-            print("[주간 챌린지] 로그인되지 않음, 종료")
             return
         
         try:
-            print("[주간 챌린지] 기본 챌린지 확인 중...")
             self.ensure_default_challenges()
-            print("[주간 챌린지] 활성 챌린지 로드 중...")
             self.load_active_challenges()
-            print(f"[주간 챌린지] 활성 챌린지 개수: {len(self.active_challenges)}")
             
             challenge = next((c for c in self.active_challenges if c["type"] == "WEEKLY_STREAK"), None)
             if not challenge:
-                print("[주간 챌린지] WEEKLY_STREAK 챌린지를 찾을 수 없음")
-                logger.warning("[주간 챌린지] WEEKLY_STREAK 챌린지를 찾을 수 없음")
                 return
-            
-            print(f"[주간 챌린지] 챌린지 찾음: {challenge['title']} (ID: {challenge['id']})")
-            logger.info(f"[주간 챌린지] 챌린지 찾음: {challenge['title']} (ID: {challenge['id']})")
-            
-            print(f"[주간 챌린지] 진행도 업데이트 시작 (challenge_id: {challenge['id']})")
+
             await self.update_challenge_progress(challenge["id"], 1)
-            print("[주간 챌린지] 진행도 업데이트 완료")
             
             await self.load_user_challenge_progress()
-            print("[주간 챌린지] 사용자 챌린지 진행도 로드 완료")
         except Exception as e:
-            print(f"[주간 챌린지] 오류 발생: {e}")
             logger.error(f"주간 챌린지 업데이트 오류: {e}", exc_info=True)
     
     # 포인트 로그 관련 변수
@@ -736,7 +702,6 @@ class ChallengeState(MileageState):
                         user.current_points = self.current_user_points
                         session.add(user)
                         session.commit()
-                        logger.info(f"[마이페이지] 포인트 동기화: DB {user.current_points} -> 계산된 {self.current_user_points}")
         except Exception as e:
             logger.error(f"사용자 포인트 새로고침 오류: {e}", exc_info=True)
             # 오류 발생 시 DB 값 사용
@@ -811,13 +776,10 @@ class ChallengeState(MileageState):
         # 저장 성공 시 주간 챌린지 진행도 업데이트
         if self.is_save_success:
             try:
-                print("[ChallengeState] 저장 성공, 주간 챌린지 진행도 업데이트 시작...")
                 await self.mark_daily_record()
-                print("[ChallengeState] 주간 챌린지 진행도 업데이트 완료")
-                logger.info("[ChallengeState] 주간 챌린지 진행도 업데이트 완료")
             except Exception as e:
-                print(f"[ChallengeState] 주간 챌린지 업데이트 실패: {e}")
-                logger.warning(f"[ChallengeState] 주간 챌린지 업데이트 실패: {e}", exc_info=True)
+                # 저장 자체는 성공했으므로, 챌린지 업데이트 실패는 부수 실패로 처리
+                logger.error(f"[ChallengeState] 주간 챌린지 업데이트 실패: {e}", exc_info=True)
     
     def load_dashboard_statistics(self):
         """대시보드 통계 데이터 로드 (이번주/한달 배출량)"""
@@ -914,130 +876,6 @@ class ChallengeState(MileageState):
             # 한달 최대 배출량 계산 (그래프 높이 정규화용)
             max_monthly_emission = max(monthly_daily_dict.values()) if monthly_daily_dict else 1.0
             
-            # 더미 데이터 자동 생성 기능 제거 (회원가입 직후 포인트/배출량이 생성되는 문제 해결)
-            # 사용자가 직접 리포트를 저장할 때만 데이터가 생성되도록 변경
-            # 더미 데이터 생성 로직 전체 주석 처리
-            # if len(monthly_logs) == 0:
-            #     # 기존 더미 데이터 삭제
-            #     self.delete_dummy_data()
-            #     
-            #     import random
-            #     import json
-            #     with Session(engine) as session:
-            #         # 사용자 조회 (한 번만)
-            #         user = session.exec(
-            #             select(User).where(User.student_id == self.current_user_id)
-            #         ).first()
-            #         
-            #         if not user:
-            #             logger.error(f"[더미 데이터] 사용자를 찾을 수 없습니다: {self.current_user_id}")
-            #             return
-            #         
-            #         total_points = 0
-            #         # 최근 30일 동안의 더미 데이터 생성 (다양한 패턴으로)
-            #         base_emission = 10.0  # 기본 배출량
-            #         for i in range(30):
-            #             current_date = one_month_ago + timedelta(days=i)
-            #             if current_date > today:
-            #                 break
-            #             
-            #             # 주기적인 패턴 추가 (주간 패턴)
-            #             day_of_week = current_date.weekday()
-            #             weekday_factor = 1.0 if day_of_week < 5 else 0.7  # 주말은 30% 감소
-            #             
-            #             # 장기 트렌드 추가 (시간에 따른 변화)
-            #             trend_factor = 1.0 + (i / 30.0) * 0.3  # 점진적 증가
-            #             
-            #             # 랜덤 변동 추가 (일일 변동)
-            #             random_variation = random.uniform(0.7, 1.3)
-            #             
-            #             # 주기적인 피크 추가 (일부 날짜에 높은 값)
-            #             peak_factor = 1.0
-            #             if i % 7 == 3:  # 목요일마다 약간 높게
-            #                 peak_factor = 1.2
-            #             elif i % 10 == 0:  # 10일마다 한 번씩 매우 높게
-            #                 peak_factor = 1.5
-            #             elif i % 5 == 2:  # 5일마다 한 번씩 낮게
-            #                 peak_factor = 0.6
-            #             
-            #             # 최종 배출량 계산
-            #             emission = round(base_emission * weekday_factor * trend_factor * random_variation * peak_factor, 2)
-            #             # 범위 제한 (3~25kg)
-            #             emission = max(3.0, min(25.0, emission))
-            #             
-            #             # 더미 포인트 생성 (배출량에 비례하되 변동 추가)
-            #             points = random.randint(50, 200)
-            #             total_points += points
-            #             
-            #             # 더미 활동 데이터 생성
-            #             dummy_activities = [
-            #                 {"category": "교통", "activity_type": "자동차", "value": random.uniform(10, 50), "unit": "km"},
-            #                 {"category": "식품", "activity_type": "소고기", "value": random.uniform(100, 300), "unit": "g"},
-            #             ]
-            #             
-            #             # CarbonLog 생성
-            #             dummy_log = CarbonLog(
-            #                 student_id=self.current_user_id,
-            #                 log_date=current_date,
-            #                 total_emission=emission,
-            #                 points_earned=points,
-            #                 activities_json=json.dumps(dummy_activities, ensure_ascii=False),
-            #                 source="carbon_input",
-            #                 created_at=datetime.now()
-            #             )
-            #             session.add(dummy_log)
-            #         
-            #         # 사용자 포인트 업데이트 (한 번만)
-            #         user.current_points += total_points
-            #         session.add(user)
-            #         self.current_user_points = user.current_points
-            #         
-            #         session.commit()
-            #         logger.info(f"[더미 데이터] {self.current_user_id} 사용자를 위한 더미 데이터 생성 완료 (총 {total_points}점 추가)")
-            #         logger.info(f"[더미 데이터] {self.current_user_id} 사용자를 위한 더미 데이터 생성 완료")
-            #         
-            #         # 생성된 데이터 다시 조회
-            #         monthly_stmt = select(CarbonLog).where(
-            #             CarbonLog.student_id == self.current_user_id,
-            #             CarbonLog.log_date >= one_month_ago,
-            #             CarbonLog.log_date <= today
-            #         )
-            #         monthly_logs = list(session.exec(monthly_stmt).all())
-            #         
-            #         # 이번주 로그도 다시 조회
-            #         weekly_stmt = select(CarbonLog).where(
-            #             CarbonLog.student_id == self.current_user_id,
-            #             CarbonLog.log_date >= this_monday,
-            #             CarbonLog.log_date <= today
-            #         )
-            #         weekly_logs = list(session.exec(weekly_stmt).all())
-            #         
-            #         # weekly_daily_dict 재계산
-            #         weekly_daily_dict = {}
-            #         for log in weekly_logs:
-            #             day_key = log.log_date.strftime("%Y-%m-%d")
-            #             if day_key not in weekly_daily_dict:
-            #                 weekly_daily_dict[day_key] = 0.0
-            #             weekly_daily_dict[day_key] += log.total_emission
-            #         
-            #         # monthly_daily_dict 재계산
-            #         monthly_daily_dict = {}
-            #         for log in monthly_logs:
-            #             day_key = log.log_date.strftime("%Y-%m-%d")
-            #             if day_key not in monthly_daily_dict:
-            #                 monthly_daily_dict[day_key] = 0.0
-            #             monthly_daily_dict[day_key] += log.total_emission
-            #         
-            #         # 한달 최대 배출량 재계산
-            #         max_monthly_emission = max(monthly_daily_dict.values()) if monthly_daily_dict else 1.0
-            #         
-            #         # 이번주 최대 배출량 재계산
-            #         max_weekly_emission = max(weekly_daily_dict.values()) if weekly_daily_dict else 1.0
-            #         
-            #         # 이번주 통계 재계산
-            #         self.weekly_emission = round(sum(log.total_emission for log in weekly_logs), 2)
-            #         self.monthly_emission = round(sum(log.total_emission for log in monthly_logs), 2)
-            
             # 한달 일별 데이터 생성 (날짜순으로 정렬)
             self.monthly_daily_data = []
             for i in range(30):
@@ -1077,61 +915,6 @@ class ChallengeState(MileageState):
 
     def set_mypage_section(self, section: str):
         self.mypage_section = section
-    
-    def delete_dummy_data(self):
-        """더미 데이터 삭제"""
-        if not self.is_logged_in or not self.current_user_id:
-            logger.warning("[더미 데이터 삭제] 로그인되지 않았습니다.")
-            return
-        
-        try:
-            from ..models import CarbonLog
-            from sqlmodel import Session, create_engine, select
-            import os
-            
-            db_path = os.path.join(os.getcwd(), "reflex.db")
-            db_url = f"sqlite:///{db_path}"
-            engine = create_engine(db_url, echo=False)
-            
-            with Session(engine) as session:
-                # 최근 30일 이내의 더미 데이터 삭제
-                today = date.today()
-                one_month_ago = today - timedelta(days=30)
-                
-                # 더미 데이터 조회 (source="carbon_input"이고 최근 30일 이내)
-                stmt = select(CarbonLog).where(
-                    CarbonLog.student_id == self.current_user_id,
-                    CarbonLog.log_date >= one_month_ago,
-                    CarbonLog.log_date <= today,
-                    CarbonLog.source == "carbon_input"
-                )
-                dummy_logs = list(session.exec(stmt).all())
-                
-                if len(dummy_logs) == 0:
-                    logger.info(f"[더미 데이터 삭제] 삭제할 더미 데이터가 없습니다: {self.current_user_id}")
-                    return
-                
-                # 포인트 차감 계산
-                total_points_to_deduct = sum(log.points_earned for log in dummy_logs)
-                
-                # 더미 데이터 삭제
-                for log in dummy_logs:
-                    session.delete(log)
-                
-                # 사용자 포인트 차감
-                user = session.exec(
-                    select(User).where(User.student_id == self.current_user_id)
-                ).first()
-                if user:
-                    user.current_points = max(0, user.current_points - total_points_to_deduct)
-                    self.current_user_points = user.current_points
-                    session.add(user)
-                
-                session.commit()
-                logger.info(f"[더미 데이터 삭제] {len(dummy_logs)}개의 더미 데이터 삭제 완료 (차감된 포인트: {total_points_to_deduct}점)")
-                
-        except Exception as e:
-            logger.error(f"[더미 데이터 삭제] 오류: {e}", exc_info=True)
     
     def _generate_monthly_line_chart_svg(self):
         """한달 꺽은선 그래프 SVG 생성"""
@@ -1254,13 +1037,11 @@ class ChallengeState(MileageState):
                             if quiz_progress.is_completed:
                                 self.quiz_answered = True
                                 self.quiz_is_correct = True
-                                logger.info(f"퀴즈 상태 로드: 오늘 정답을 맞춤")
                             else:
                                 # is_completed가 False인 경우는 오래된 기록이거나 오류 상태
                                 # 오늘 날짜지만 완료되지 않은 경우는 초기화
                                 self.quiz_answered = False
                                 self.quiz_is_correct = False
-                                logger.info(f"퀴즈 상태 로드: 오늘 날짜 기록이 있지만 완료되지 않음, 초기화")
                         else:
                             self.quiz_answered = False
                             self.quiz_is_correct = False
@@ -1284,7 +1065,6 @@ class ChallengeState(MileageState):
                         last_updated_date = info_progress.last_updated.date()
                         if last_updated_date == today and info_progress.is_completed:
                             self.article_read_today = True
-                            logger.info("아티클 상태 로드: 오늘 이미 읽었음")
                         else:
                             self.article_read_today = False
                     else:

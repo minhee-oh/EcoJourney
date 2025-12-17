@@ -3,7 +3,7 @@
 import reflex as rx
 from ..states import AppState
 from .help_modal import help_icon_button, help_modal
-from .common_header import header
+from .common_header import header, footer_bar
 
 # 공통 버튼 UI
 def waste_button(label, is_selected, on_click):
@@ -116,6 +116,7 @@ def waste_page():
         AppState.is_logged_in,
         rx.box(
             header(),
+            footer_bar(),
             # 헤더 공간 확보
             rx.box(height="100px"),
             # fade-in 애니메이션을 위한 CSS 삽입
@@ -380,6 +381,7 @@ def waste_page():
         ),
         rx.box(
             header(),
+            footer_bar(),
             rx.center(
                 rx.vstack(
                     rx.heading("로그인이 필요합니다", size="7", color="white", font_weight="bold"),

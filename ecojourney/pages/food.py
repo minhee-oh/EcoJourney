@@ -3,7 +3,7 @@
 import reflex as rx
 from ..states import AppState
 from .help_modal import help_icon_button, help_modal
-from .common_header import header
+from .common_header import header, footer_bar
 
 # 세부 카테고리 선택 컴포넌트가 누락되어 NameError가 발생해 추가합니다.
 def subcategory_selection_section(label: str, options: list, selected_state: list) -> rx.Component:
@@ -248,6 +248,7 @@ def food_page():
         AppState.is_logged_in,
         rx.box(
             header(),
+            footer_bar(),
             # 헤더 공간 확보
             rx.box(height="100px"),
             # fade-in 애니메이션을 위한 CSS 삽입
@@ -739,6 +740,7 @@ def food_page():
         ),
         rx.box(
             header(),
+            footer_bar(),
             rx.center(
                 rx.vstack(
                     rx.heading("로그인이 필요합니다", size="6", color="white"),
