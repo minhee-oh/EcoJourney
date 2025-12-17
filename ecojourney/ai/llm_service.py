@@ -16,7 +16,7 @@ load_dotenv(override=True) # 프로젝트 루트(OpenSourceProject/.env)에서 �
 
 # Gemini API 설정
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # .env에서 키 읽기
-PRIMARY_MODEL = "gemini-2.5"  # 기본 모델
+PRIMARY_MODEL = "gemini-2.5-flash"  # 기본 모델
 FALLBACK_MODELS = [
     "gemini-1.5-flash",    # 1차 대체 모델 (실제 사용 가능)
     "gemini-1.5-flash-latest",  # 2차 대체 모델
